@@ -54,18 +54,22 @@ class _BuyDataState extends State<BuyData> {
         if (RegExp(r'^0(703|706|803|806|810|813|814|903|904|906)')
             .hasMatch(prefix)) {
           _selectedNetwork = 1;
+          isSelected = true;
         }
         // GLO prefixes
         else if (RegExp(r'^0(705|805|807|811|815|905)').hasMatch(prefix)) {
           _selectedNetwork = 2;
+          isSelected = true;
         }
         // Airtel prefixes
         else if (RegExp(r'^0(701|708|802|808|902)').hasMatch(prefix)) {
           _selectedNetwork = 3;
+          isSelected = true;
         }
         // 9mobile prefixes
         else if (RegExp(r'^0(809|817|818|908|909)').hasMatch(prefix)) {
           _selectedNetwork = 4;
+          isSelected = true;
         }
       });
     }
@@ -107,20 +111,57 @@ class _BuyDataState extends State<BuyData> {
         builder: (_) => WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
-            title: Text(title),
-            content: Text(message),
+            title: Row(
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: isSuccess ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF001f3e),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+            ),
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(20),
             ),
+            elevation: 5,
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.of(context)
-                    ..pop() // Close dialog
-                    ..pop(); // Close PIN modal
+                  Navigator.of(context).pop();
                 },
-                child: const Text('OK'),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
+                  ),
+                ),
               ),
             ],
           ),
@@ -129,7 +170,170 @@ class _BuyDataState extends State<BuyData> {
     });
   }
 
-  @override
+  Future<void> _handleDataPurchase({
+    required String pin,
+    DateTime? scheduledDate,
+    TimeOfDay? scheduledTime,
+  }) async {
+    if (!mounted) return;
+
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    color: Color(0xFF001f3e),
+                    strokeWidth: 3,
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Processing your request...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF001f3e),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final Map<String, dynamic> requestBody = {
+        'phone_number': _phoneController.text,
+        'network': _selectedNetwork,
+        'plan': _selectedPlan?['plan_id'],
+        'pin': pin,
+      };
+
+      if (scheduledDate != null && scheduledTime != null) {
+        requestBody['selectedDate'] = scheduledDate.toString().split(' ')[0];
+        requestBody['selectedTime'] = '${scheduledTime.hour}:${scheduledTime.minute}';
+      }
+
+      final response = await http.post(
+        Uri.parse('https://vtubiz.com/api/purchase/buydata'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(requestBody),
+      );
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      if (!mounted) return;
+
+      final responseData = jsonDecode(response.body);
+
+      if (scheduledDate != null && scheduledTime != null) {
+        if (responseData == "schedule_saved") {
+          _showResultDialog(
+            'Success',
+            'Purchase scheduled successfully!',
+            true,
+          );
+        } else {
+          _showResultDialog(
+            'Schedule Failed',
+            'Failed to schedule purchase. Please try again.',
+            false,
+          );
+        }
+      } else {
+        if (response.statusCode == 200) {
+          if (responseData['success'] == true) {
+            _showResultDialog(
+              'Success',
+              responseData['message'] ?? 'Purchase Successful!',
+              true,
+            );
+          } else {
+            _showResultDialog(
+              'Transaction Failed',
+              responseData['message'] ?? 'Transaction failed. Please try again.',
+              false,
+            );
+          }
+        } else {
+          _showResultDialog(
+            'Network Error',
+            'Failed to connect to server. Please check your connection and try again.',
+            false,
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog if still showing
+      if (mounted) {
+        Navigator.of(context).maybePop();
+      }
+
+      if (!mounted) return;
+      
+      _showResultDialog(
+        'Error',
+        'An unexpected error occurred. Please try again later.',
+        false,
+      );
+    }
+  }
+  
+  Future<void> _showPinInputModal({
+    DateTime? scheduledDate,
+    TimeOfDay? scheduledTime,
+  }) async {
+    if (_phoneController.text.isEmpty ||
+        _selectedPlan == null ||
+        _selectedNetwork == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields!')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => InputPin(
+        onProceed: (pin) => _handleDataPurchase(
+          pin: pin,
+          scheduledDate: scheduledDate,
+          scheduledTime: scheduledTime,
+        ),
+        onCancel: () {
+          // if (mounted) Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -295,174 +499,222 @@ class _BuyDataState extends State<BuyData> {
                 const SizedBox(height: 20),
 
                 // ... rest of the widgets ...
-
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        spreadRadius: 2,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
+                if (isSelected)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF001f3e).withOpacity(0.1),
+                        width: 1,
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 16),
-                      FetchPlan(
-                        type: 'data',
-                        network: _selectedNetwork ?? 1,
-                        onPlanSelected: (plan) {
-                          setState(() {
-                            _selectedPlan = plan;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_phoneController.text.isNotEmpty &&
-                              _selectedPlan != null &&
-                              _selectedNetwork != null) {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(20),
-                                ),
-                              ),
-                              builder: (context) => InputPin(
-                                onProceed: (pin) async {
-                                  try {
-                                    final prefs =
-                                        await SharedPreferences.getInstance();
-                                    final token =
-                                        prefs.getString('token') ?? '';
-
-                                    final response = await http.post(
-                                      Uri.parse(
-                                          'https://vtubiz.com/api/purchase/buydata'),
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': 'Bearer $token',
-                                      },
-                                      body: jsonEncode({
-                                        'phone_number': _phoneController.text,
-                                        'network': _selectedNetwork,
-                                        'plan': _selectedPlan?['plan_id'],
-                                        'pin': pin,
-                                      }),
-                                    );
-
-                                    final responseData =
-                                        jsonDecode(response.body);
-
-                                    if (!mounted) return;
-
-                                    if (response.statusCode == 200) {
-                                      if (responseData['success'] == true) {
-                                        _showResultDialog(
-                                          'Success',
-                                          responseData['message'] ??
-                                              'Purchase Successful!',
-                                          true,
-                                        );
-                                      } else {
-                                        _showResultDialog(
-                                          'Transaction Failed',
-                                          responseData['message'] ??
-                                              'Transaction failed',
-                                          false,
-                                        );
-                                      }
-                                    } else {
-                                      _showResultDialog(
-                                        'Network Error',
-                                        'Network error. Please try again.',
-                                        false,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    _showResultDialog(
-                                      'Error',
-                                      'An error occurred: $e',
-                                      false,
-                                    );
-                                  }
-                                },
-                                onCancel: () => Navigator.pop(context),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in all fields!'),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF001f3e),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.08),
+                          spreadRadius: 1,
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
-                        child: const Text(
-                          'Buy Now',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Your existing onPressed logic
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: const Color(0xFF001f3e),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: const BorderSide(
-                              color: Color(0xFF001f3e),
-                              width: 1,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Select Plan',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF001f3e),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF001f3e).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.local_offer_rounded,
+                                    size: 16,
+                                    color: Color(0xFF001f3e),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Available Plans',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: const Color(0xFF001f3e),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        FetchPlan(
+                          type: 'data',
+                          network: _selectedNetwork ?? 1,
+                          onPlanSelected: (plan) {
+                            setState(() {
+                              _selectedPlan = plan;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                if (isSelected)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      const Color(0xFF001f3e).withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showPinInputModal(),
+                              icon:
+                                  const Icon(Icons.flash_on_rounded, size: 20),
+                              label: const Text('Buy Now'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF001f3e),
+                                foregroundColor: Colors.white,
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
                             ),
                           ),
-                          elevation: 0,
                         ),
-                        child: const Text(
-                          'Buy Later',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.15),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final DateTime? selectedDate =
+                                    await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now()
+                                      .add(const Duration(days: 30)),
+                                  builder: (context, child) {
+                                    return Theme(
+                                      data: Theme.of(context).copyWith(
+                                        colorScheme: const ColorScheme.light(
+                                          primary: Color(0xFF001f3e),
+                                          onPrimary: Colors.white,
+                                          surface: Colors.white,
+                                          onSurface: Color(0xFF001f3e),
+                                        ),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+
+                                if (selectedDate != null && mounted) {
+                                  final TimeOfDay? selectedTime =
+                                      await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: Theme.of(context).copyWith(
+                                          timePickerTheme: TimePickerThemeData(
+                                            backgroundColor: Colors.white,
+                                            hourMinuteTextColor:
+                                                const Color(0xFF001f3e),
+                                            dialHandColor:
+                                                const Color(0xFF001f3e),
+                                            dialBackgroundColor:
+                                                const Color(0xFF001f3e)
+                                                    .withOpacity(0.1),
+                                          ),
+                                          textButtonTheme: TextButtonThemeData(
+                                            style: TextButton.styleFrom(
+                                              foregroundColor:
+                                                  const Color(0xFF001f3e),
+                                            ),
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    },
+                                  );
+
+                                  if (selectedTime != null && mounted) {
+                                    _showPinInputModal(
+                                      scheduledDate: selectedDate,
+                                      scheduledTime: selectedTime,
+                                    );
+                                  }
+                                }
+                              },
+                              icon:
+                                  const Icon(Icons.schedule_rounded, size: 20),
+                              label: const Text('Buy Later'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: const Color(0xFF001f3e),
+                                textStyle: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: const BorderSide(
+                                    color: Color(0xFF001f3e),
+                                    width: 1,
+                                  ),
+                                ),
+                                elevation: 0,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),

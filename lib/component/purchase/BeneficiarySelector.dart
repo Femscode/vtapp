@@ -124,20 +124,21 @@ class _BeneficiarySelectorState extends ConsumerState<BeneficiarySelector> {
     return GestureDetector(
       onTap: () => _showBeneficiaryModal(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF001f3e).withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
+         
           children: [
             Icon(
               Icons.person_add_rounded,
               color: const Color(0xFF001f3e),
               size: 20,
             ),
-            const SizedBox(width: 8),
+             SizedBox(width: 8),
             Text(
               'Select Beneficiary',
               style: TextStyle(

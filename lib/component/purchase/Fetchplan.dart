@@ -36,14 +36,18 @@ class _FetchPlanState extends State<FetchPlan> {
     if (oldWidget.network != widget.network) {
       setState(() {
         _selectedPlan = null;
+        _plans = [];
       });
       fetchPlans();
     }
   }
 
   Future<void> fetchPlans() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
+      _plans = [];
     });
 
     try {
@@ -51,17 +55,20 @@ class _FetchPlanState extends State<FetchPlan> {
       final token = prefs.getString('token') ?? '';
 
       final response = await http.get(
-        Uri.parse('https://vtubiz.com/api/purchase/fetch-plan/${widget.type}/${widget.network}'),
+        Uri.parse(
+            'https://vtubiz.com/api/purchase/fetch-plan/${widget.type}/${widget.network}'),
         headers: {
           'Authorization': 'Bearer $token',
         },
       );
 
+      if (!mounted) return;
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print(data);
         setState(() {
-          _plans = data;
+          _plans = List.from(data['data']);
           _isLoading = false;
         });
       } else {
@@ -71,6 +78,7 @@ class _FetchPlanState extends State<FetchPlan> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _plans = [];
         _isLoading = false;
@@ -79,40 +87,57 @@ class _FetchPlanState extends State<FetchPlan> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
+        color: Colors.white,
         border: Border.all(color: Colors.grey.shade300),
         borderRadius: BorderRadius.circular(12),
       ),
       child: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(),
+          ? const SizedBox(
+              height: 48,
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
             )
-          : DropdownButtonHideUnderline(
-              child: DropdownButton<Map<String, dynamic>>(
-                isExpanded: true,
-                value: _selectedPlan,
-                hint: const Text('Select a plan'),
-                items: _plans.map<DropdownMenuItem<Map<String, dynamic>>>((plan) {
-                  return DropdownMenuItem<Map<String, dynamic>>(
-                    value: plan,
-                    child: Text(
-                      '${plan['name']} - ₦${plan['amount']}',
-                      style: const TextStyle(fontSize: 14),
+          : DropdownButton<Map<String, dynamic>>(
+              isExpanded: true,
+              value: _selectedPlan,
+              underline: const SizedBox(),
+              hint: Text(
+                'Select a plan',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: Color(0xFF001f3e),
+              ),
+              items: _plans.map<DropdownMenuItem<Map<String, dynamic>>>((plan) {
+                return DropdownMenuItem<Map<String, dynamic>>(
+                  value: plan,
+                  child: Text(
+                    '${plan['plan_name']} - ₦${plan['admin_price']}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF001f3e),
                     ),
-                  );
-                }).toList(),
-                onChanged: (Map<String, dynamic>? newValue) {
+                  ),
+                );
+              }).toList(),
+              onChanged: (Map<String, dynamic>? newValue) {
+                if (newValue != null) {
                   setState(() {
                     _selectedPlan = newValue;
                   });
-                  if (newValue != null) {
-                    widget.onPlanSelected(newValue);
-                  }
-                },
-              ),
+                  widget.onPlanSelected(newValue);
+                }
+              },
             ),
     );
   }
