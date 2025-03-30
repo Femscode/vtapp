@@ -153,8 +153,6 @@ class _BuyElectricityState extends State<BuyElectricity> {
             backgroundColor: Colors.green,
           ),
         );
-
-        
       } else if (data['success'].toString() == 'false') {
         // Handle specific error codes
         String errorMessage = 'Transaction failed: ';
@@ -330,12 +328,6 @@ class _BuyElectricityState extends State<BuyElectricity> {
                             ),
                             keyboardType: TextInputType.number,
                           ),
-                            BeneficiaryToggle(
-                            phone: _meterController.text,
-                            isToggled: beneficiary_toggle,
-                            updateToggle: updateBeneficiaryToggle,
-                            type: 'electricity',
-                          ),
                         ],
                       ),
                     ),
@@ -396,6 +388,14 @@ class _BuyElectricityState extends State<BuyElectricity> {
                                   _amount = double.tryParse(value) ?? 0;
                                 });
                               },
+                            ),
+                            BeneficiaryToggle(
+                              phone: _meterController.text.trim().isEmpty
+                                  ? ''
+                                  : _meterController.text.trim(),
+                              isToggled: beneficiary_toggle,
+                              updateToggle: updateBeneficiaryToggle,
+                              type: 'electricity',
                             ),
                           ],
                         ),

@@ -12,7 +12,7 @@ class BeneficiaryToggle extends ConsumerStatefulWidget {
     required this.updateToggle,
     required this.type,
   });
-  
+
   final String phone;
   final String type;
   final bool isToggled;
@@ -26,7 +26,9 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
   final TextEditingController _nameController = TextEditingController();
 
   Future<void> addToBeneficiary(String name, String type) async {
-   
+    print('pelumi');
+    print(widget.phone);
+    print('femi');
     try {
       final token = await ref.read(tokenProvider.future);
       final response = await http.post(
@@ -35,7 +37,7 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'name': name, 'phone': widget.phone,'type': type}),
+        body: jsonEncode({'name': name, 'phone': widget.phone, 'type': type}),
       );
       print('pelumi');
       print(response);
@@ -92,7 +94,8 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error occurred while removing beneficiary')),
+        const SnackBar(
+            content: Text('Error occurred while removing beneficiary')),
       );
     }
   }
