@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:vtubiz/pages/BuyCable.dart';
 import 'package:vtubiz/pages/BuyData.dart';
 import 'package:vtubiz/pages/BuyElectricity.dart';
+import 'package:vtubiz/pages/BuyExamination.dart';
 
 class Categories extends StatefulWidget {
   const Categories({super.key});
@@ -54,6 +56,7 @@ class _CategoriesState extends State<Categories> {
   ];
 
   void navigatePurchase(title) async {
+    print(title);
     if (title == 'Data') {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const BuyData()));
@@ -61,6 +64,14 @@ class _CategoriesState extends State<Categories> {
     if (title == 'Electricity') {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const BuyElectricity()));
+    }
+    if (title == 'Cable(TV)') {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const BuyCable()));
+    }
+    if (title == 'Result') {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const BuyExamination()));
     }
   }
 

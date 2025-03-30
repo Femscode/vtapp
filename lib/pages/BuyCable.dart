@@ -6,43 +6,77 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-class BuyElectricity extends StatefulWidget {
-  const BuyElectricity({Key? key}) : super(key: key);
+class BuyCable extends StatefulWidget {
+  const BuyCable({Key? key}) : super(key: key);
 
   @override
-  State<BuyElectricity> createState() => _BuyElectricityState();
+  State<BuyCable> createState() => _BuyCableState();
 }
 
-class _BuyElectricityState extends State<BuyElectricity> {
-  final TextEditingController _meterController = TextEditingController();
-  String _selectedServiceType = '';
-  String _selectedMeterType = '';
+class _BuyCableState extends State<BuyCable> {
+  final TextEditingController _decoderController = TextEditingController();
+  String _selectedCableType = '';
+  String _selectedPlan = '';
   bool _showDetails = false;
   bool beneficiary_toggle = false;
   String _customerName = '';
-  String _customerAddress = '';
-  String _customerArrears = '';
   double _amount = 0;
-  String _purchasedCode = '';
+  String _bouquet = '';
+  String _status = '';
   bool _showPurchasedCode = false;
 
-  final List<Map<String, String>> _serviceTypes = [
-    {"value": "01", "label": "Eko Electricity - EKEDC(PHCN)"},
-    {"value": "02", "label": "Ikeja Electricity - IKEDC(PHCN)"},
-    {"value": "03", "label": "PortHarcourt Electricity - PHEDC"},
-    {"value": "04", "label": "Kaduna Electricity - KAEDC"},
-    {"value": "05", "label": "Abuja Electricity - AEDC"},
-    {"value": "06", "label": "Ibadan Electricity - IBEDC"},
-    {"value": "07", "label": "Kano Electricity - KEDC"},
-    {"value": "08", "label": "Jos Electricity - JEDC"},
-    {"value": "09", "label": "Enugu Electricity - EEDC"},
-    {"value": "10", "label": "Benin Electricity - BEDC"},
+  List<Map<String, dynamic>> _availablePlans = [];
+  Map<String, dynamic>? _selectedPlanDetails;
+  bool _isLoadingPlans = false;
+
+  final List<Map<String, String>> _cableTypes = [
+    {"value": "01", "label": "DSTV"},
+    {"value": "02", "label": "GOTV"},
+    {"value": "03", "label": "STARTIMES"},
   ];
 
-  final List<Map<String, String>> _meterTypes = [
-    {"value": "01", "label": "Prepaid"},
-    {"value": "02", "label": "Postpaid"},
-  ];
+  Future<void> _fetchAvailablePlans() async {
+    if (_selectedCableType.isEmpty) return;
+
+    setState(() {
+      _isLoadingPlans = true;
+      _availablePlans = [];
+      _selectedPlanDetails = null;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token') ?? '';
+
+      final response = await http.get(
+        Uri.parse('https://vtubiz.com/api/purchase/fetch_cable_plan/$_selectedCableType'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      final data = jsonDecode(response.body);
+      print(data);
+        setState(() {
+          _availablePlans =
+              List<Map<String, dynamic>>.from(data);
+        });
+      
+    } catch (e) {
+      print('Error fetching plans: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to load available plans'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoadingPlans = false;
+      });
+    }
+  }
 
   void updateBeneficiaryToggle(bool value) {
     setState(() {
@@ -50,10 +84,8 @@ class _BuyElectricityState extends State<BuyElectricity> {
     });
   }
 
-  Future<void> _fetchMeterDetails() async {
-    if (_selectedServiceType.isEmpty ||
-        _selectedMeterType.isEmpty ||
-        _meterController.text.length < 5) {
+  Future<void> _fetchDecoderDetails() async {
+    if (_selectedCableType.isEmpty || _decoderController.text.length < 5) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all necessary fields')),
       );
@@ -65,19 +97,16 @@ class _BuyElectricityState extends State<BuyElectricity> {
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/purchase/fetch_meter_details'),
+        Uri.parse('https://vtubiz.com/api/purchase/fetch_decoder_details'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'service_type': _selectedServiceType,
-          'meter_type': _selectedMeterType,
-          'meter_number': _meterController.text,
+          'cable_type': _selectedCableType,
+          'decoder_number': _decoderController.text,
         }),
       );
-
-      // ... existing code ...
 
       final data = jsonDecode(response.body);
       print(data);
@@ -86,107 +115,54 @@ class _BuyElectricityState extends State<BuyElectricity> {
         setState(() {
           _showDetails = true;
           _customerName = content['Customer_Name']?.toString() ?? '';
-          _customerAddress = content['Address']?.toString() ?? '';
-          _customerArrears = content['Customer_Arrears']?.toString() ?? '0.00';
+          _bouquet = content['Current_Bouquet']?.toString() ?? '';
+          _status = content['Status']?.toString() ?? '';
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Could not fetch meter details. Please try again.')),
+          const SnackBar(
+            content: Text('Could not fetch decoder details. Please try again.'),
+          ),
         );
       }
     } catch (e) {
       print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('An error occurred. Please try again later.')),
+          content: Text('An error occurred. Please try again later.'),
+        ),
       );
     }
   }
 
-  Future<void> _buyElectricity(String pin) async {
+  Future<void> _buyCable(String pin) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/purchase/buyElectricity'),
+        Uri.parse('https://vtubiz.com/api/purchase/buyCable'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'company': _selectedServiceType,
-          'meter_type': _selectedMeterType,
-          'meter_number': _meterController.text,
+          'cable_type': _selectedCableType,
+          'decoder_number': _decoderController.text,
+          'plan': _selectedPlan,
           'amount': _amount,
           'pin': pin,
         }),
       );
 
       final data = jsonDecode(response.body);
-      print(data); // For debugging
+      print(data);
 
-      if (data['success'].toString() == 'true' && data['message'] != null) {
-        final content = data['message']['content'] as Map<String, dynamic>;
-        setState(() {
-          _showPurchasedCode = true;
-          _purchasedCode =
-              content['token'] ?? content['purchased_code'] ?? 'N/A';
-
-          // Store additional details if available
-          if (content['unit'] != null) {
-            _purchasedCode += '\nUnits: ${content['unit']}';
-          }
-          if (content['tariff'] != null) {
-            _purchasedCode += '\nTariff: ${content['tariff']}';
-          }
-          if (content['address'] != null) {
-            _purchasedCode += '\nAddress: ${content['address']}';
-          }
-        });
-
+      if (data['success'].toString() == 'true') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Token Purchase successful!'),
+            content: Text('Subscription successful!'),
             backgroundColor: Colors.green,
-          ),
-        );
-      } else if (data['success'].toString() == 'false') {
-        // Handle specific error codes
-        String errorMessage = 'Transaction failed: ';
-
-        errorMessage += data['message'].toString();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
-      } else if (data['message'] != null && data['message']['code'] != null) {
-        // Handle specific error codes
-        String errorMessage = 'Transaction failed: ';
-        switch (data['message']['code'].toString()) {
-          case '000':
-            errorMessage += 'Invalid PIN';
-            break;
-          case '001':
-            errorMessage += 'Insufficient balance';
-            break;
-          case '002':
-            errorMessage += 'Invalid meter number';
-            break;
-          default:
-            errorMessage += data['message']['content']?.toString() ??
-                data['message'].toString();
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
           ),
         );
       } else {
@@ -198,7 +174,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
         );
       }
     } catch (e) {
-      print('Error: $e'); // For debugging
+      print('Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -214,7 +190,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Buy Electricity',
+          'Buy Cable TV',
           style: TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -222,7 +198,6 @@ class _BuyElectricityState extends State<BuyElectricity> {
           ),
         ),
         backgroundColor: const Color(0xFF001f3e),
-        // elevation: 0,
       ),
       backgroundColor: Colors.grey[100],
       body: SingleChildScrollView(
@@ -251,34 +226,34 @@ class _BuyElectricityState extends State<BuyElectricity> {
                           Row(
                             children: [
                               const Text(
-                                'Service Information',
+                                'Cable TV Details',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               BeneficiarySelector(
-                                type: 'electricity',
-                                phoneController: _meterController,
+                                type: 'cable',
+                                phoneController: _decoderController,
                                 isToggled: beneficiary_toggle,
                                 updateToggle: updateBeneficiaryToggle,
-                              )
+                              ),
                             ],
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: _selectedServiceType.isEmpty
+                            value: _selectedCableType.isEmpty
                                 ? null
-                                : _selectedServiceType,
+                                : _selectedCableType,
                             decoration: InputDecoration(
-                              labelText: 'Service Type',
+                              labelText: 'Cable Type',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               filled: true,
                               fillColor: Colors.grey[50],
                             ),
-                            items: _serviceTypes.map((type) {
+                            items: _cableTypes.map((type) {
                               return DropdownMenuItem(
                                 value: type['value'],
                                 child: Text(type['label']!),
@@ -286,40 +261,18 @@ class _BuyElectricityState extends State<BuyElectricity> {
                             }).toList(),
                             onChanged: (value) {
                               setState(() {
-                                _selectedServiceType = value!;
+                                _selectedCableType = value!;
+                                _selectedPlan = '';
+                                _selectedPlanDetails = null;
                               });
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: _selectedMeterType.isEmpty
-                                ? null
-                                : _selectedMeterType,
-                            decoration: InputDecoration(
-                              labelText: 'Meter Type',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            items: _meterTypes.map((type) {
-                              return DropdownMenuItem(
-                                value: type['value'],
-                                child: Text(type['label']!),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedMeterType = value!;
-                              });
+                              _fetchAvailablePlans();
                             },
                           ),
                           const SizedBox(height: 16),
                           TextField(
-                            controller: _meterController,
+                            controller: _decoderController,
                             decoration: InputDecoration(
-                              labelText: 'Meter Number',
+                              labelText: 'Decoder Number',
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -328,11 +281,16 @@ class _BuyElectricityState extends State<BuyElectricity> {
                             ),
                             keyboardType: TextInputType.number,
                           ),
+                          BeneficiaryToggle(
+                            phone: _decoderController.text.trim(),
+                            isToggled: beneficiary_toggle,
+                            updateToggle: updateBeneficiaryToggle,
+                            type: 'cable',
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
                   if (_showDetails) ...[
                     const SizedBox(height: 16),
                     Card(
@@ -360,78 +318,85 @@ class _BuyElectricityState extends State<BuyElectricity> {
                               subtitle: Text(_customerName),
                             ),
                             ListTile(
-                              leading: const Icon(Icons.location_on,
+                              leading: const Icon(Icons.tv,
                                   color: Color(0xFF001f3e)),
-                              title: const Text('Address'),
-                              subtitle: Text(_customerAddress),
+                              title: const Text('Current Bouquet'),
+                              subtitle: Text(_bouquet),
                             ),
                             ListTile(
-                              leading: const Icon(Icons.account_balance_wallet,
+                              leading: const Icon(
+                                  Icons.signal_wifi_statusbar_4_bar_outlined,
                                   color: Color(0xFF001f3e)),
-                              title: const Text('Arrears'),
-                              subtitle: Text(_customerArrears),
+                              title: const Text('Status'),
+                              subtitle: Text(_status),
                             ),
                             const SizedBox(height: 16),
-                            TextField(
-                              decoration: InputDecoration(
-                                labelText: 'Amount',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                            if (_availablePlans.isNotEmpty) ...[
+                              const SizedBox(height: 16),
+                              Card(
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                filled: true,
-                                fillColor: Colors.grey[50],
-                                prefixIcon: const Icon(Icons.attach_money),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Select Plan',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      DropdownButtonFormField<String>(
+                                        value: _selectedPlan.isEmpty
+                                            ? null
+                                            : _selectedPlan,
+                                        decoration: InputDecoration(
+                                          labelText: 'Available Plans',
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          filled: true,
+                                          fillColor: Colors.grey[50],
+                                        ),
+                                        items: _availablePlans.map((plan) {
+                                          return DropdownMenuItem(
+                                            value: plan['plan_id'].toString(),
+                                            child: Text(
+                                                '${plan['plan_name']} - ₦${plan['admin_price']}'),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) {
+                                          setState(() {
+                                            _selectedPlan = value ?? '';
+                                            _selectedPlanDetails =
+                                                _availablePlans.firstWhere(
+                                              (plan) =>
+                                                  plan['plan_id'].toString() ==
+                                                  value,
+                                              orElse: () => {},
+                                            );
+                                            _amount = double.tryParse(
+                                                    _selectedPlanDetails?[
+                                                                'admin_price']
+                                                            .toString() ??
+                                                        '0') ??
+                                                0;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              keyboardType: TextInputType.number,
-                              onChanged: (value) {
-                                setState(() {
-                                  _amount = double.tryParse(value) ?? 0;
-                                });
-                              },
-                            ),
-                            BeneficiaryToggle(
-                              phone: _meterController.text.trim().isEmpty
-                                  ? ''
-                                  : _meterController.text.trim(),
-                              isToggled: beneficiary_toggle,
-                              updateToggle: updateBeneficiaryToggle,
-                              type: 'electricity',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (_showPurchasedCode) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      elevation: 2,
-                      color: const Color(0xFF001f3e),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Your Token',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _purchasedCode,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
+                            ],
+                          
                           ],
                         ),
                       ),
@@ -451,7 +416,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                                   content: InputPin(
                                     onProceed: (pin) {
                                       // Navigator.of(context).pop();
-                                      _buyElectricity(pin);
+                                      _buyCable(pin);
                                     },
                                     onCancel: () {
                                       // Navigator.of(context).pop();
@@ -460,7 +425,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                                 ),
                               );
                             }
-                          : _fetchMeterDetails,
+                          : _fetchDecoderDetails,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF001f3e),
                         shape: RoundedRectangleBorder(
@@ -469,7 +434,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                         elevation: 2,
                       ),
                       child: Text(
-                        _showDetails ? 'Buy Token' : 'Confirm Details',
+                        _showDetails ? 'Subscribe Now' : 'Confirm Details',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

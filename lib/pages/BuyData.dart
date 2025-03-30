@@ -238,7 +238,7 @@ class _BuyDataState extends State<BuyData> {
         }
       } else {
         if (response.statusCode == 200) {
-          if (responseData['success'] != false) {
+          if (responseData['success'].toString() == 'true') {
             _showResultDialog(
               'Success',
               responseData['message'] ?? 'Purchase Successful!',
