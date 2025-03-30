@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 
 class Footer extends StatefulWidget {
-  const Footer({Key? key}) : super(key: key);
+  const Footer({
+    Key? key,
+    this.onNavigate,
+    this.currentIndex,
+  }) : super(key: key);
 
+  final Function(int)? onNavigate;
+  final int? currentIndex;
   @override
   _FooterState createState() => _FooterState();
 }
@@ -10,10 +16,19 @@ class Footer extends StatefulWidget {
 class _FooterState extends State<Footer> {
   int _selectedIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.currentIndex ?? 0;
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+    if (widget.onNavigate != null) {
+      widget.onNavigate!(index);
+    }
   }
 
   @override
@@ -52,7 +67,7 @@ class _FooterState extends State<Footer> {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _selectedIndex == 0 
+                color: _selectedIndex == 0
                     ? const Color(0xFF001f3e).withOpacity(0.1)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
@@ -72,7 +87,7 @@ class _FooterState extends State<Footer> {
               ),
               child: const Icon(Icons.people_alt_rounded),
             ),
-            label: 'Referral',
+            label: 'Referrals',
           ),
           BottomNavigationBarItem(
             icon: Container(

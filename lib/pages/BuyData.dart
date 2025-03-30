@@ -170,6 +170,9 @@ class _BuyDataState extends State<BuyData> {
     });
   }
 
+  // Add this state variable at the top of the class
+  bool _isProcessing = false;
+
   Future<void> _handleDataPurchase({
     required String pin,
     DateTime? scheduledDate,
@@ -177,43 +180,11 @@ class _BuyDataState extends State<BuyData> {
   }) async {
     if (!mounted) return;
 
+    setState(() {
+      _isProcessing = true;
+    });
+
     // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return WillPopScope(
-          onWillPop: () async => false,
-          child: Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Padding(
-              padding: EdgeInsets.all(20.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    color: Color(0xFF001f3e),
-                    strokeWidth: 3,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'Processing your request...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF001f3e),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -228,7 +199,8 @@ class _BuyDataState extends State<BuyData> {
 
       if (scheduledDate != null && scheduledTime != null) {
         requestBody['selectedDate'] = scheduledDate.toString().split(' ')[0];
-        requestBody['selectedTime'] = '${scheduledTime.hour}:${scheduledTime.minute}';
+        requestBody['selectedTime'] =
+            '${scheduledTime.hour}:${scheduledTime.minute}';
       }
 
       final response = await http.post(
@@ -239,14 +211,15 @@ class _BuyDataState extends State<BuyData> {
         },
         body: jsonEncode(requestBody),
       );
-
-      // Close loading dialog
+      // Update state before showing result
       if (mounted) {
-        Navigator.of(context).pop();
+        setState(() {
+          _isProcessing = false;
+        });
+        // Navigator.of(context).pop(); // Close loading dialog
       }
 
       if (!mounted) return;
-
       final responseData = jsonDecode(response.body);
 
       if (scheduledDate != null && scheduledTime != null) {
@@ -265,7 +238,7 @@ class _BuyDataState extends State<BuyData> {
         }
       } else {
         if (response.statusCode == 200) {
-          if (responseData['success'] == true) {
+          if (responseData['success'] != false) {
             _showResultDialog(
               'Success',
               responseData['message'] ?? 'Purchase Successful!',
@@ -274,7 +247,8 @@ class _BuyDataState extends State<BuyData> {
           } else {
             _showResultDialog(
               'Transaction Failed',
-              responseData['message'] ?? 'Transaction failed. Please try again.',
+              responseData['message'] ??
+                  'Transaction failed. Please try again.',
               false,
             );
           }
@@ -286,14 +260,18 @@ class _BuyDataState extends State<BuyData> {
           );
         }
       }
+      // ... existing response handling code ...
     } catch (e) {
       // Close loading dialog if still showing
       if (mounted) {
-        Navigator.of(context).maybePop();
+        setState(() {
+          _isProcessing = false;
+        });
+        // Navigator.of(context).maybePop();
       }
 
       if (!mounted) return;
-      
+
       _showResultDialog(
         'Error',
         'An unexpected error occurred. Please try again later.',
@@ -301,7 +279,9 @@ class _BuyDataState extends State<BuyData> {
       );
     }
   }
-  
+
+  // Then update the buttons in the build method
+
   Future<void> _showPinInputModal({
     DateTime? scheduledDate,
     TimeOfDay? scheduledTime,
@@ -490,6 +470,7 @@ class _BuyDataState extends State<BuyData> {
                             phone: _phone,
                             isToggled: beneficiary_toggle,
                             updateToggle: updateBeneficiaryToggle,
+                            type : 'data',
                           ),
                         ],
                       ),
@@ -594,13 +575,29 @@ class _BuyDataState extends State<BuyData> {
                               ],
                             ),
                             child: ElevatedButton.icon(
-                              onPressed: () => _showPinInputModal(),
-                              icon:
-                                  const Icon(Icons.flash_on_rounded, size: 20),
-                              label: const Text('Buy Now'),
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () => _showPinInputModal(),
+                              icon: _isProcessing
+                                  ? Container(
+                                      width: 20,
+                                      height: 20,
+                                      child: const CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.flash_on_rounded,
+                                      size: 20),
+                              label: Text(
+                                  _isProcessing ? 'Processing...' : 'Buy Now'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF001f3e),
                                 foregroundColor: Colors.white,
+                                disabledBackgroundColor:
+                                    const Color(0xFF001f3e).withOpacity(0.7),
+                                disabledForegroundColor:
+                                    Colors.white.withOpacity(0.8),
                                 textStyle: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -628,73 +625,93 @@ class _BuyDataState extends State<BuyData> {
                               ],
                             ),
                             child: ElevatedButton.icon(
-                              onPressed: () async {
-                                final DateTime? selectedDate =
-                                    await showDatePicker(
-                                  context: context,
-                                  initialDate: DateTime.now(),
-                                  firstDate: DateTime.now(),
-                                  lastDate: DateTime.now()
-                                      .add(const Duration(days: 30)),
-                                  builder: (context, child) {
-                                    return Theme(
-                                      data: Theme.of(context).copyWith(
-                                        colorScheme: const ColorScheme.light(
-                                          primary: Color(0xFF001f3e),
-                                          onPrimary: Colors.white,
-                                          surface: Colors.white,
-                                          onSurface: Color(0xFF001f3e),
-                                        ),
-                                      ),
-                                      child: child!,
-                                    );
-                                  },
-                                );
-
-                                if (selectedDate != null && mounted) {
-                                  final TimeOfDay? selectedTime =
-                                      await showTimePicker(
-                                    context: context,
-                                    initialTime: TimeOfDay.now(),
-                                    builder: (context, child) {
-                                      return Theme(
-                                        data: Theme.of(context).copyWith(
-                                          timePickerTheme: TimePickerThemeData(
-                                            backgroundColor: Colors.white,
-                                            hourMinuteTextColor:
-                                                const Color(0xFF001f3e),
-                                            dialHandColor:
-                                                const Color(0xFF001f3e),
-                                            dialBackgroundColor:
-                                                const Color(0xFF001f3e)
-                                                    .withOpacity(0.1),
-                                          ),
-                                          textButtonTheme: TextButtonThemeData(
-                                            style: TextButton.styleFrom(
-                                              foregroundColor:
-                                                  const Color(0xFF001f3e),
+                              onPressed: _isProcessing
+                                  ? null
+                                  : () async {
+                                      final DateTime? selectedDate =
+                                          await showDatePicker(
+                                        context: context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime.now(),
+                                        lastDate: DateTime.now()
+                                            .add(const Duration(days: 30)),
+                                        builder: (context, child) {
+                                          return Theme(
+                                            data: Theme.of(context).copyWith(
+                                              colorScheme:
+                                                  const ColorScheme.light(
+                                                primary: Color(0xFF001f3e),
+                                                onPrimary: Colors.white,
+                                                surface: Colors.white,
+                                                onSurface: Color(0xFF001f3e),
+                                              ),
                                             ),
-                                          ),
-                                        ),
-                                        child: child!,
+                                            child: child!,
+                                          );
+                                        },
                                       );
-                                    },
-                                  );
 
-                                  if (selectedTime != null && mounted) {
-                                    _showPinInputModal(
-                                      scheduledDate: selectedDate,
-                                      scheduledTime: selectedTime,
-                                    );
-                                  }
-                                }
-                              },
-                              icon:
-                                  const Icon(Icons.schedule_rounded, size: 20),
-                              label: const Text('Buy Later'),
+                                      if (selectedDate != null && mounted) {
+                                        final TimeOfDay? selectedTime =
+                                            await showTimePicker(
+                                          context: context,
+                                          initialTime: TimeOfDay.now(),
+                                          builder: (context, child) {
+                                            return Theme(
+                                              data: Theme.of(context).copyWith(
+                                                timePickerTheme:
+                                                    TimePickerThemeData(
+                                                  backgroundColor: Colors.white,
+                                                  hourMinuteTextColor:
+                                                      const Color(0xFF001f3e),
+                                                  dialHandColor:
+                                                      const Color(0xFF001f3e),
+                                                  dialBackgroundColor:
+                                                      const Color(0xFF001f3e)
+                                                          .withOpacity(0.1),
+                                                ),
+                                                textButtonTheme:
+                                                    TextButtonThemeData(
+                                                  style: TextButton.styleFrom(
+                                                    foregroundColor:
+                                                        const Color(0xFF001f3e),
+                                                  ),
+                                                ),
+                                              ),
+                                              child: child!,
+                                            );
+                                          },
+                                        );
+
+                                        if (selectedTime != null && mounted) {
+                                          _showPinInputModal(
+                                            scheduledDate: selectedDate,
+                                            scheduledTime: selectedTime,
+                                          );
+                                        }
+                                      }
+                                    },
+                              icon: _isProcessing
+                                  ? Container(
+                                      width: 20,
+                                      height: 20,
+                                      child: const CircularProgressIndicator(
+                                        color: const Color(0xFF001f3e),
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.schedule_rounded,
+                                      size: 20),
+                              label: Text(_isProcessing
+                                  ? 'Processing...'
+                                  : 'Buy Later'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
                                 foregroundColor: const Color(0xFF001f3e),
+                                disabledBackgroundColor:
+                                    Colors.white.withOpacity(0.7),
+                                disabledForegroundColor:
+                                    const Color(0xFF001f3e).withOpacity(0.7),
                                 textStyle: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
@@ -702,8 +719,11 @@ class _BuyDataState extends State<BuyData> {
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
-                                  side: const BorderSide(
-                                    color: Color(0xFF001f3e),
+                                  side: BorderSide(
+                                    color: _isProcessing
+                                        ? const Color(0xFF001f3e)
+                                            .withOpacity(0.3)
+                                        : const Color(0xFF001f3e),
                                     width: 1,
                                   ),
                                 ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:vtubiz/pages/BuyData.dart';
+import 'package:vtubiz/pages/BuyElectricity.dart';
 
 class Categories extends StatefulWidget {
   const Categories({super.key});
@@ -56,6 +57,10 @@ class _CategoriesState extends State<Categories> {
     if (title == 'Data') {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const BuyData()));
+    }
+    if (title == 'Electricity') {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const BuyElectricity()));
     }
   }
 

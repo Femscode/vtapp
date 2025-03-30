@@ -10,9 +10,11 @@ class BeneficiaryToggle extends ConsumerStatefulWidget {
     required this.phone,
     required this.isToggled,
     required this.updateToggle,
+    required this.type,
   });
   
   final String phone;
+  final String type;
   final bool isToggled;
   final ValueChanged<bool> updateToggle;
 
@@ -24,6 +26,7 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
   final TextEditingController _nameController = TextEditingController();
 
   Future<void> addToBeneficiary(String name, String type) async {
+   
     try {
       final token = await ref.read(tokenProvider.future);
       final response = await http.post(
@@ -32,9 +35,10 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({'name': name, 'phone': widget.phone}),
+        body: jsonEncode({'name': name, 'phone': widget.phone,'type': type}),
       );
-
+      print('pelumi');
+      print(response);
       if (response.statusCode == 200) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -120,7 +124,7 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
               ),
               onPressed: () {
                 if (_nameController.text.trim().isNotEmpty) {
-                  addToBeneficiary(_nameController.text, 'data');
+                  addToBeneficiary(_nameController.text, widget.type);
                   Navigator.pop(context);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
