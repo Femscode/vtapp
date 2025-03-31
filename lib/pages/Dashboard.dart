@@ -5,6 +5,7 @@ import 'package:vtubiz/component/dashboard/DiscountBanner.dart';
 import 'package:vtubiz/component/dashboard/Footer.dart';
 import 'package:vtubiz/component/dashboard/TransactionTable.dart';
 import 'package:vtubiz/pages/OtpScreen.dart';
+import 'package:vtubiz/pages/Profile.dart';
 import 'package:vtubiz/pages/Transaction.dart';
 import 'package:vtubiz/providers/authprovider.dart';
 import '../component/dashboard/HomeHeader.dart';
@@ -47,6 +48,10 @@ class _DashboardState extends ConsumerState<Dashboard> {
         break;
       case 4:
         print('Navigate to Profile');
+         Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Profile()),
+        );
         break;
     }
   }

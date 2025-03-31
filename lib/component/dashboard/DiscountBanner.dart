@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:vtubiz/pages/FundWallet.dart';
 
 class DiscountBanner extends StatefulWidget {
   const DiscountBanner({super.key, this.auth_user});
@@ -15,8 +16,9 @@ class _DiscountBannerState extends State<DiscountBanner> {
   @override
   Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat("#,##0.00", "en_US");
-    final balance = double.tryParse(widget.auth_user?['balance'].toString() ?? '0') ?? 0;
-    
+    final balance =
+        double.tryParse(widget.auth_user?['balance'].toString() ?? '0') ?? 0;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.all(20),
@@ -25,7 +27,10 @@ class _DiscountBannerState extends State<DiscountBanner> {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF001f3e), Color(0xFF003366)], // Primary color and slightly lighter shade
+          colors: [
+            Color(0xFF001f3e),
+            Color(0xFF003366)
+          ], // Primary color and slightly lighter shade
         ),
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
@@ -64,7 +69,9 @@ class _DiscountBannerState extends State<DiscountBanner> {
                             });
                           },
                           child: Icon(
-                            _isBalanceVisible ? Icons.visibility : Icons.visibility_off,
+                            _isBalanceVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Colors.white70,
                             size: 20,
                           ),
@@ -73,7 +80,7 @@ class _DiscountBannerState extends State<DiscountBanner> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _isBalanceVisible 
+                      _isBalanceVisible
                           ? "₦${currencyFormatter.format(balance)}"
                           : "₦ ****",
                       style: const TextStyle(
@@ -110,6 +117,11 @@ class _DiscountBannerState extends State<DiscountBanner> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const FundWallet()),
+                    );
                     // Handle fund wallet action here
                   },
                   style: ElevatedButton.styleFrom(

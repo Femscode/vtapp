@@ -3,6 +3,7 @@ import 'package:vtubiz/pages/BuyCable.dart';
 import 'package:vtubiz/pages/BuyData.dart';
 import 'package:vtubiz/pages/BuyElectricity.dart';
 import 'package:vtubiz/pages/BuyExamination.dart';
+import 'package:vtubiz/pages/Referral.dart';
 
 class Categories extends StatefulWidget {
   const Categories({super.key});
@@ -72,6 +73,10 @@ class _CategoriesState extends State<Categories> {
     if (title == 'Result') {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const BuyExamination()));
+    }
+    if (title == 'Referral') {
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => const Referral()));
     }
   }
 
