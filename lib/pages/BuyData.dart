@@ -364,115 +364,173 @@ class _BuyDataState extends State<BuyData> {
                       ),
                     ],
                   ),
-                  child: Column(
+                                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Select Network',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF001f3e),
+                      // Network Selection Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF001f3e).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.sim_card_rounded,
+                                    color: Color(0xFF001f3e),
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Select Network',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF001f3e),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          BeneficiarySelector(
-                            type: 'data',
-                            phoneController: _phoneController,
-                            isToggled: beneficiary_toggle,
-                            updateToggle: updateBeneficiaryToggle,
-                          ),
-                        ],
+                            BeneficiarySelector(
+                              type: 'data',
+                              phoneController: _phoneController,
+                              isToggled: beneficiary_toggle,
+                              updateToggle: updateBeneficiaryToggle,
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          NetworkSelect(
-                            imageUrl: 'assets/mtn.png',
-                            name: 'MTN',
-                            isSelected: _selectedNetwork == 1,
-                            onTap: () => selectNetwork('MTN', 1),
+                      const SizedBox(height: 20),
+                      
+                      // Network Options
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF001f3e).withOpacity(0.1),
                           ),
-                          NetworkSelect(
-                            imageUrl: 'assets/glo.png',
-                            name: 'GLO',
-                            isSelected: _selectedNetwork == 2,
-                            onTap: () => selectNetwork('GLO', 2),
-                          ),
-                          NetworkSelect(
-                            imageUrl: 'assets/airtel.webp',
-                            name: 'Airtel',
-                            isSelected: _selectedNetwork == 3,
-                            onTap: () => selectNetwork('Airtel', 3),
-                          ),
-                          NetworkSelect(
-                            imageUrl: 'assets/nmobile.png',
-                            name: '9mobile',
-                            isSelected: _selectedNetwork == 4,
-                            onTap: () => selectNetwork('9mobile', 4),
-                          ),
-                        ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            NetworkSelect(
+                              imageUrl: 'assets/mtn.png',
+                              name: 'MTN',
+                              isSelected: _selectedNetwork == 1,
+                              onTap: () => selectNetwork('MTN', 1),
+                            ),
+                            NetworkSelect(
+                              imageUrl: 'assets/glo.png',
+                              name: 'GLO',
+                              isSelected: _selectedNetwork == 2,
+                              onTap: () => selectNetwork('GLO', 2),
+                            ),
+                            NetworkSelect(
+                              imageUrl: 'assets/airtel.webp',
+                              name: 'Airtel',
+                              isSelected: _selectedNetwork == 3,
+                              onTap: () => selectNetwork('Airtel', 3),
+                            ),
+                            NetworkSelect(
+                              imageUrl: 'assets/nmobile.png',
+                              name: '9mobile',
+                              isSelected: _selectedNetwork == 4,
+                              onTap: () => selectNetwork('9mobile', 4),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Phone Number',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF001f3e),
-                            ),
+                      
+                      // Phone Number Input Section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: const Color(0xFF001f3e).withOpacity(0.1),
                           ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              hintText: 'Enter phone number',
-                              hintStyle: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 14,
-                              ),
-                              prefixIcon: const Icon(
-                                Icons.phone_rounded,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF001f3e).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.phone_rounded,
+                                    color: Color(0xFF001f3e),
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Phone Number',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF001f3e),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              style: const TextStyle(
+                                fontSize: 16,
                                 color: Color(0xFF001f3e),
                               ),
-                              filled: true,
-                              fillColor:
-                                  const Color(0xFF001f3e).withOpacity(0.05),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color:
-                                      const Color(0xFF001f3e).withOpacity(0.1),
-                                  width: 1,
+                              decoration: InputDecoration(
+                                hintText: 'Enter phone number',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 15,
                                 ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF001f3e),
-                                  width: 1,
+                                filled: true,
+                                fillColor: const Color(0xFF001f3e).withOpacity(0.05),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: const Color(0xFF001f3e).withOpacity(0.1),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF001f3e),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          BeneficiaryToggle(
-                            phone: _phone,
-                            isToggled: beneficiary_toggle,
-                            updateToggle: updateBeneficiaryToggle,
-                            type : 'data',
-                          ),
-                        ],
+                            BeneficiaryToggle(
+                              phone: _phone,
+                              isToggled: beneficiary_toggle,
+                              updateToggle: updateBeneficiaryToggle,
+                              type: 'data',
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

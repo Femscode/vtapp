@@ -29,6 +29,75 @@ class _BuyCableState extends State<BuyCable> {
   Map<String, dynamic>? _selectedPlanDetails;
   bool _isLoadingPlans = false;
 
+  void _showResultDialog(String title, String message, bool isSuccess) {
+    if (!mounted) return;
+
+    Future.microtask(() {
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: isSuccess ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF001f3e),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 5,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   final List<Map<String, String>> _cableTypes = [
     {"value": "01", "label": "DSTV"},
     {"value": "02", "label": "GOTV"},
@@ -49,7 +118,8 @@ class _BuyCableState extends State<BuyCable> {
       final token = prefs.getString('token') ?? '';
 
       final response = await http.get(
-        Uri.parse('https://vtubiz.com/api/purchase/fetch_cable_plan/$_selectedCableType'),
+        Uri.parse(
+            'https://vtubiz.com/api/purchase/fetch_cable_plan/$_selectedCableType'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -58,11 +128,9 @@ class _BuyCableState extends State<BuyCable> {
 
       final data = jsonDecode(response.body);
       print(data);
-        setState(() {
-          _availablePlans =
-              List<Map<String, dynamic>>.from(data);
-        });
-      
+      setState(() {
+        _availablePlans = List<Map<String, dynamic>>.from(data);
+      });
     } catch (e) {
       print('Error fetching plans: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -165,12 +233,17 @@ class _BuyCableState extends State<BuyCable> {
             backgroundColor: Colors.green,
           ),
         );
+
+        _showResultDialog(
+          'Subscription Successful!',
+          'Your subscription has been completed successfully.',
+          true,
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message']?.toString() ?? 'Transaction failed'),
-            backgroundColor: Colors.red,
-          ),
+        _showResultDialog(
+          'Transaction Failed',
+          data['message']?.toString() ?? 'Transaction failed',
+          false,
         );
       }
     } catch (e) {
@@ -396,7 +469,6 @@ class _BuyCableState extends State<BuyCable> {
                                 ),
                               ),
                             ],
-                          
                           ],
                         ),
                       ),
@@ -409,19 +481,18 @@ class _BuyCableState extends State<BuyCable> {
                     child: ElevatedButton(
                       onPressed: _showDetails
                           ? () {
-                              showDialog(
+                              showModalBottomSheet(
                                 context: context,
-                                builder: (BuildContext context) => AlertDialog(
-                                  title: const Text('Enter PIN'),
-                                  content: InputPin(
-                                    onProceed: (pin) {
-                                      // Navigator.of(context).pop();
-                                      _buyCable(pin);
-                                    },
-                                    onCancel: () {
-                                      // Navigator.of(context).pop();
-                                    },
-                                  ),
+                                isScrollControlled: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20)),
+                                ),
+                                builder: (context) => InputPin(
+                                  onProceed: (pin) => _buyCable(pin),
+                                  onCancel: () {
+                                    // if (mounted) Navigator.of(context).pop();
+                                  },
                                 ),
                               );
                             }

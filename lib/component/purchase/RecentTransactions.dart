@@ -14,7 +14,76 @@ class RecentTransactions extends ConsumerStatefulWidget {
 
 class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
   String? pin;
-  
+
+  void _showResultDialog(String title, String message, bool isSuccess) {
+    if (!mounted) return;
+
+    Future.microtask(() {
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: isSuccess ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF001f3e),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 5,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   Future<void> redoTransaction(transactionId, String pin) async {
     try {
       final token = await ref.read(tokenProvider.future);
@@ -30,13 +99,22 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
           'pin': pin,
         }),
       );
-
+      final responseData = jsonDecode(response.body);
       if (response.statusCode == 200) {
         // Handle success
-        print('Transaction redone successfully : ${response.body}');
+
+        _showResultDialog(
+          'Transaction Redone',
+          responseData['message'],
+          true,
+        );
       } else {
         // Handle error
-        print('Failed to redo transaction: ${response.body}');
+        _showResultDialog(
+          'Transaction Failed',
+          'Failed to redo transaction: ${responseData['message']}',
+          false,
+        );
       }
     } catch (e) {
       print(e);
@@ -45,8 +123,8 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
 
   @override
   Widget build(BuildContext context) {
-    
-    final recentTransaction = ref.watch(getLastTransactionProvider(widget.recentType));
+    final recentTransaction =
+        ref.watch(getLastTransactionProvider(widget.recentType));
 
     return recentTransaction.when(
       data: (transactions) => Container(
@@ -67,27 +145,25 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
                     TextButton(
                       onPressed: () {
                         showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(20)),
-                              ),
-                              builder: (context) {
-                                
-                                return InputPin(
-                                  onProceed: (pin) {
-                                    print('Proceeded with PIN: $pin');
-                                    redoTransaction(transaction['id'], pin);
-                                    // Add your logic for proceeding with the PIN
-                                  },
-                                  onCancel: () {
-                                    print('PIN input canceled');
-                                  },
-                                );
+                          context: context,
+                          isScrollControlled: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(20)),
+                          ),
+                          builder: (context) {
+                            return InputPin(
+                              onProceed: (pin) {
+                                print('Proceeded with PIN: $pin');
+                                redoTransaction(transaction['id'], pin);
+                                // Add your logic for proceeding with the PIN
+                              },
+                              onCancel: () {
+                                print('PIN input canceled');
                               },
                             );
-                        
+                          },
+                        );
                       },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
@@ -108,8 +184,6 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
                       '${transaction['amount']} | ',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                   
-                    
                   ],
                 ),
               );
@@ -122,4 +196,3 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
     );
   }
 }
-

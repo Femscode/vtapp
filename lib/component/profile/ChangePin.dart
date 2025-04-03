@@ -15,6 +15,75 @@ class _ChangePinState extends State<ChangePin> {
   final newPinController = TextEditingController();
   final confirmPinController = TextEditingController();
 
+  void _showResultDialog(String title, String message, bool isSuccess) {
+    if (!mounted) return;
+
+    Future.microtask(() {
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: isSuccess ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF001f3e),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 5,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   Future<void> _updatePin() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -34,23 +103,21 @@ class _ChangePinState extends State<ChangePin> {
       );
 
       final data = jsonDecode(response.body);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(data['message']),
-          backgroundColor: data['success'] ? Colors.green : Colors.red,
-        ),
+
+      _showResultDialog(
+        'Pin Updated!',
+        data['message'],
+        true,
       );
 
       if (data['success']) {
         // Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Network error. Please try again.'),
-          backgroundColor: Colors.red,
-        ),
+      _showResultDialog(
+        'Failed!',
+        'Network error. Please try again.',
+        false,
       );
     }
   }

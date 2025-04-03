@@ -34,6 +34,75 @@ class _BuyExaminationState extends State<BuyExamination> {
     _fetchExamTypes();
   }
 
+  void _showResultDialog(String title, String message, bool isSuccess) {
+    if (!mounted) return;
+
+    Future.microtask(() {
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: isSuccess ? Colors.green : Colors.red,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF001f3e),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              message,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[800],
+                height: 1.4,
+              ),
+            ),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            elevation: 5,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'OK',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
   Future<void> _fetchExamTypes() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -103,32 +172,26 @@ class _BuyExaminationState extends State<BuyExamination> {
           // _showPurchasedPins = true;
           // _purchasedPins = List<String>.from(data['pins'] ?? []);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Purchase successful!'),
-            backgroundColor: Colors.green,
-          ),
+
+        _showResultDialog(
+          'Purchase Successful!',
+          'Click OK to view your purchased pins',
+          true,
         );
-      } 
-       else if (data['success'].toString() == 'false') {
+      } else if (data['success'].toString() == 'false') {
         // Handle specific error codes
         String errorMessage = 'Transaction failed: ';
-
         errorMessage += data['message'].toString();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+        _showResultDialog(
+          'Transaction Failed',
+          errorMessage,
+          false,
         );
-      }
-      else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Transaction failed'),
-            backgroundColor: Colors.red,
-          ),
+      } else {
+        _showResultDialog(
+          'Transaction Failed',
+          data['message'] ?? 'Transaction failed',
+          false,
         );
       }
     } catch (e) {
@@ -293,20 +356,19 @@ class _BuyExaminationState extends State<BuyExamination> {
                           child: ElevatedButton(
                             onPressed: _selectedExam != null
                                 ? () {
-                                    showDialog(
+                                    showModalBottomSheet(
                                       context: context,
-                                      builder: (BuildContext context) =>
-                                          AlertDialog(
-                                        title: const Text('Enter PIN'),
-                                        content: InputPin(
-                                          onProceed: (pin) {
-                                            // Navigator.of(context).pop();
-                                            _buyExamination(pin);
-                                          },
-                                          onCancel: () {
-                                            // Navigator.of(context).pop();
-                                          },
-                                        ),
+                                      isScrollControlled: true,
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.vertical(
+                                            top: Radius.circular(20)),
+                                      ),
+                                      builder: (context) => InputPin(
+                                        onProceed: (pin) =>
+                                            _buyExamination(pin),
+                                        onCancel: () {
+                                          // if (mounted) Navigator.of(context).pop();
+                                        },
                                       ),
                                     );
                                   }
