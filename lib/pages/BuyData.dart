@@ -320,6 +320,10 @@ class _BuyDataState extends State<BuyData> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF001f3e),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'Buy Data Bundle',
           style: TextStyle(
@@ -332,14 +336,7 @@ class _BuyDataState extends State<BuyData> {
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              const Color(0xFF001f3e).withOpacity(0.05),
-              Colors.white,
-            ],
-          ),
+          color: const Color(0xFF001f3e).withOpacity(0.05),
         ),
         child: SingleChildScrollView(
           child: Padding(
@@ -354,17 +351,25 @@ class _BuyDataState extends State<BuyData> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF001f3e).withOpacity(0.05),
+                        const Color(0xFF001f3e).withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.08),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 10,
+                        spreadRadius: 2,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                                  child: Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Network Selection Header
@@ -378,7 +383,8 @@ class _BuyDataState extends State<BuyData> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF001f3e).withOpacity(0.1),
+                                    color: const Color(0xFF001f3e)
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: const Icon(
@@ -408,7 +414,7 @@ class _BuyDataState extends State<BuyData> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
+
                       // Network Options
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -450,7 +456,34 @@ class _BuyDataState extends State<BuyData> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF001f3e).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.phone_rounded,
+                              color: Color(0xFF001f3e),
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Phone Number',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF001f3e),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
                       // Phone Number Input Section
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -464,32 +497,6 @@ class _BuyDataState extends State<BuyData> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF001f3e).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(
-                                    Icons.phone_rounded,
-                                    color: Color(0xFF001f3e),
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Phone Number',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF001f3e),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
                             TextField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
@@ -504,7 +511,8 @@ class _BuyDataState extends State<BuyData> {
                                   fontSize: 15,
                                 ),
                                 filled: true,
-                                fillColor: const Color(0xFF001f3e).withOpacity(0.05),
+                                fillColor:
+                                    const Color(0xFF001f3e).withOpacity(0.05),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
@@ -512,7 +520,8 @@ class _BuyDataState extends State<BuyData> {
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide(
-                                    color: const Color(0xFF001f3e).withOpacity(0.1),
+                                    color: const Color(0xFF001f3e)
+                                        .withOpacity(0.1),
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
@@ -542,17 +551,20 @@ class _BuyDataState extends State<BuyData> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF001f3e).withOpacity(0.1),
-                        width: 1,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          const Color(0xFF001f3e).withOpacity(0.05),
+                          const Color(0xFF001f3e).withOpacity(0.05),
+                        ],
                       ),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.08),
-                          spreadRadius: 1,
+                          color: Colors.black.withOpacity(0.05),
                           blurRadius: 10,
+                          spreadRadius: 2,
                           offset: const Offset(0, 4),
                         ),
                       ],
@@ -563,14 +575,30 @@ class _BuyDataState extends State<BuyData> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Select Plan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF001f3e),
+                            Row(children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color(0xFF001f3e).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.keyboard_option_key,
+                                  color: Color(0xFF001f3e),
+                                  size: 20,
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              const Text(
+                                'Select Plan',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF001f3e),
+                                ),
+                              ),
+                            ]),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 12, vertical: 6),

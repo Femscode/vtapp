@@ -26,7 +26,7 @@ class _FundWalletState extends State<FundWallet> {
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token') ?? '';
-    
+
     final response = await http.get(
       Uri.parse('https://vtubiz.com/api/user'),
       headers: {
@@ -111,6 +111,10 @@ class _FundWalletState extends State<FundWallet> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text('Account Funding'),
         backgroundColor: const Color(0xFF383D41),
       ),

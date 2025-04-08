@@ -25,6 +25,8 @@ class _BuyElectricityState extends State<BuyElectricity> {
   double _amount = 0;
   String _purchasedCode = '';
   bool _showPurchasedCode = false;
+  bool _isLoadingDetails = false; // Add this
+  bool _isProcessingPurchase = false;
 
   final List<Map<String, String>> _serviceTypes = [
     {"value": "01", "label": "Eko Electricity - EKEDC(PHCN)"},
@@ -128,6 +130,9 @@ class _BuyElectricityState extends State<BuyElectricity> {
       );
       return;
     }
+    setState(() {
+      _isLoadingDetails = true;
+    });
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -171,10 +176,19 @@ class _BuyElectricityState extends State<BuyElectricity> {
         const SnackBar(
             content: Text('An error occurred. Please try again later.')),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingDetails = false;
+        });
+      }
     }
   }
 
   Future<void> _buyElectricity(String pin) async {
+    setState(() {
+      _isProcessingPurchase = true;
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -279,6 +293,12 @@ class _BuyElectricityState extends State<BuyElectricity> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingPurchase = false;
+        });
+      }
     }
   }
 
@@ -286,6 +306,10 @@ class _BuyElectricityState extends State<BuyElectricity> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'Buy Electricity',
           style: TextStyle(
@@ -312,6 +336,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Card(
+                    color: Colors.white,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -323,7 +348,6 @@ class _BuyElectricityState extends State<BuyElectricity> {
                         children: [
                           Row(
                             children: [
-                             
                               BeneficiarySelector(
                                 type: 'electricity',
                                 phoneController: _meterController,
@@ -403,6 +427,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                   if (_showDetails) ...[
                     const SizedBox(height: 16),
                     Card(
+                      color: Colors.white,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -472,6 +497,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                   if (_showPurchasedCode) ...[
                     const SizedBox(height: 16),
                     Card(
+                      
                       elevation: 2,
                       color: const Color(0xFF001f3e),
                       shape: RoundedRectangleBorder(
@@ -509,26 +535,26 @@ class _BuyElectricityState extends State<BuyElectricity> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _showDetails
-                          ? () {
-                              
-
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(20)),
-                                ),
-                                builder: (context) => InputPin(
-                                  onProceed: (pin) =>  _buyElectricity(pin),
-                                  onCancel: () {
-                                    // if (mounted) Navigator.of(context).pop();
-                                  },
-                                ),
-                              );
-                            }
-                          : _fetchMeterDetails,
+                      onPressed: (_isLoadingDetails || _isProcessingPurchase)
+                          ? null
+                          : _showDetails
+                              ? () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(20)),
+                                    ),
+                                    builder: (context) => InputPin(
+                                      onProceed: (pin) => _buyElectricity(pin),
+                                      onCancel: () {
+                                        // if (mounted) Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  );
+                                }
+                              : _fetchMeterDetails,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF001f3e),
                         shape: RoundedRectangleBorder(
@@ -536,13 +562,24 @@ class _BuyElectricityState extends State<BuyElectricity> {
                         ),
                         elevation: 2,
                       ),
-                      child: Text(
-                        _showDetails ? 'Buy Token' : 'Confirm Details',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoadingDetails || _isProcessingPurchase
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              _showDetails ? 'Buy Token' : 'Confirm Details',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ],

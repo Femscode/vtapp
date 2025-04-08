@@ -47,6 +47,7 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      
       body: SafeArea(
         child: WillPopScope(
           onWillPop: () async {

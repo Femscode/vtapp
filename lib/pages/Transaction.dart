@@ -25,6 +25,10 @@ class _TransactionState extends ConsumerState<Transaction> {
       data: (user) => Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
           backgroundColor: const Color(0xFF001f3e),
           elevation: 0,
           title: const Text(

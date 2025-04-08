@@ -20,6 +20,7 @@ class _BuyExaminationState extends State<BuyExamination> {
   // UI states
   bool _showPurchasedPins = false;
   bool _isLoading = true;
+  bool _isProcessingPurchase = false;
   String? _errorMessage;
 
   // Data
@@ -141,6 +142,9 @@ class _BuyExaminationState extends State<BuyExamination> {
   }
 
   Future<void> _buyExamination(String pin) async {
+    setState(() {
+      _isProcessingPurchase = true;
+    });
     try {
       if (_selectedExam == null) return;
 
@@ -201,6 +205,12 @@ class _BuyExaminationState extends State<BuyExamination> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingPurchase = false;
+        });
+      }
     }
   }
 
@@ -208,6 +218,10 @@ class _BuyExaminationState extends State<BuyExamination> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'Buy Examination Pin',
           style: TextStyle(
@@ -230,6 +244,7 @@ class _BuyExaminationState extends State<BuyExamination> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Card(
+                          color : Colors.white,
                           elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -354,25 +369,26 @@ class _BuyExaminationState extends State<BuyExamination> {
                           width: double.infinity,
                           height: 50,
                           child: ElevatedButton(
-                            onPressed: _selectedExam != null
-                                ? () {
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.vertical(
-                                            top: Radius.circular(20)),
-                                      ),
-                                      builder: (context) => InputPin(
-                                        onProceed: (pin) =>
-                                            _buyExamination(pin),
-                                        onCancel: () {
-                                          // if (mounted) Navigator.of(context).pop();
-                                        },
-                                      ),
-                                    );
-                                  }
-                                : null,
+                            onPressed:
+                                (_isProcessingPurchase || _selectedExam == null)
+                                    ? null
+                                    : () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          shape: const RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.vertical(
+                                                top: Radius.circular(20)),
+                                          ),
+                                          builder: (context) => InputPin(
+                                            onProceed: (pin) =>
+                                                _buyExamination(pin),
+                                            onCancel: () {
+                                              // if (mounted) Navigator.of(context).pop();
+                                            },
+                                          ),
+                                        );
+                                      },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF001f3e),
                               shape: RoundedRectangleBorder(
@@ -380,14 +396,24 @@ class _BuyExaminationState extends State<BuyExamination> {
                               ),
                               elevation: 2,
                             ),
-                            child: const Text(
-                              'Buy Now',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color : Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: _isProcessingPurchase
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Buy Now',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],

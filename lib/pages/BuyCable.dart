@@ -23,11 +23,11 @@ class _BuyCableState extends State<BuyCable> {
   double _amount = 0;
   String _bouquet = '';
   String _status = '';
-  bool _showPurchasedCode = false;
 
   List<Map<String, dynamic>> _availablePlans = [];
   Map<String, dynamic>? _selectedPlanDetails;
-  bool _isLoadingPlans = false;
+  bool _isLoadingDetails = false; // Add this
+  bool _isProcessingPurchase = false;
 
   void _showResultDialog(String title, String message, bool isSuccess) {
     if (!mounted) return;
@@ -108,9 +108,9 @@ class _BuyCableState extends State<BuyCable> {
     if (_selectedCableType.isEmpty) return;
 
     setState(() {
-      _isLoadingPlans = true;
       _availablePlans = [];
       _selectedPlanDetails = null;
+      _isLoadingDetails = true;
     });
 
     try {
@@ -141,7 +141,7 @@ class _BuyCableState extends State<BuyCable> {
       );
     } finally {
       setState(() {
-        _isLoadingPlans = false;
+        _isLoadingDetails = false;
       });
     }
   }
@@ -159,7 +159,9 @@ class _BuyCableState extends State<BuyCable> {
       );
       return;
     }
-
+    setState(() {
+      _isLoadingDetails = true;
+    });
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -200,10 +202,20 @@ class _BuyCableState extends State<BuyCable> {
           content: Text('An error occurred. Please try again later.'),
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingDetails = false;
+        });
+      }
     }
   }
 
   Future<void> _buyCable(String pin) async {
+    setState(() {
+      _isProcessingPurchase = true;
+    });
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
@@ -255,6 +267,12 @@ class _BuyCableState extends State<BuyCable> {
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingPurchase = false;
+        });
+      }
     }
   }
 
@@ -262,6 +280,10 @@ class _BuyCableState extends State<BuyCable> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
         title: const Text(
           'Buy Cable TV',
           style: TextStyle(
@@ -287,6 +309,7 @@ class _BuyCableState extends State<BuyCable> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Card(
+                    color: Colors.white,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -298,7 +321,6 @@ class _BuyCableState extends State<BuyCable> {
                         children: [
                           Row(
                             children: [
-                              
                               BeneficiarySelector(
                                 type: 'cable',
                                 phoneController: _decoderController,
@@ -361,6 +383,7 @@ class _BuyCableState extends State<BuyCable> {
                   if (_showDetails) ...[
                     const SizedBox(height: 16),
                     Card(
+                      color: Colors.white,
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -401,6 +424,7 @@ class _BuyCableState extends State<BuyCable> {
                             if (_availablePlans.isNotEmpty) ...[
                               const SizedBox(height: 16),
                               Card(
+                                color: Colors.white,
                                 elevation: 2,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -473,24 +497,26 @@ class _BuyCableState extends State<BuyCable> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _showDetails
-                          ? () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(20)),
-                                ),
-                                builder: (context) => InputPin(
-                                  onProceed: (pin) => _buyCable(pin),
-                                  onCancel: () {
-                                    // if (mounted) Navigator.of(context).pop();
-                                  },
-                                ),
-                              );
-                            }
-                          : _fetchDecoderDetails,
+                      onPressed: (_isLoadingDetails || _isProcessingPurchase)
+                          ? null
+                          : _showDetails
+                              ? () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(20)),
+                                    ),
+                                    builder: (context) => InputPin(
+                                      onProceed: (pin) => _buyCable(pin),
+                                      onCancel: () {
+                                        // if (mounted) Navigator.of(context).pop();
+                                      },
+                                    ),
+                                  );
+                                }
+                              : _fetchDecoderDetails,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF001f3e),
                         shape: RoundedRectangleBorder(
@@ -498,14 +524,26 @@ class _BuyCableState extends State<BuyCable> {
                         ),
                         elevation: 2,
                       ),
-                      child: Text(
-                        _showDetails ? 'Subscribe Now' : 'Confirm Details',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color : Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoadingDetails || _isProcessingPurchase
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : Text(
+                              _showDetails
+                                  ? 'Subscribe Now'
+                                  : 'Confirm Details',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                 ],
