@@ -298,13 +298,7 @@ class _BuyCableState extends State<BuyCable> {
                         children: [
                           Row(
                             children: [
-                              const Text(
-                                'Cable TV Details',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              
                               BeneficiarySelector(
                                 type: 'cable',
                                 phoneController: _decoderController,
@@ -508,6 +502,7 @@ class _BuyCableState extends State<BuyCable> {
                         _showDetails ? 'Subscribe Now' : 'Confirm Details',
                         style: const TextStyle(
                           fontSize: 16,
+                          color : Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

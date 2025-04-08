@@ -323,13 +323,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                         children: [
                           Row(
                             children: [
-                              const Text(
-                                'Service Information',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                             
                               BeneficiarySelector(
                                 type: 'electricity',
                                 phoneController: _meterController,

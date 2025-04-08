@@ -17,42 +17,42 @@ class _CategoriesState extends State<Categories> {
     {
       "icon": Icons.flash_on,
       "text": "Data",
-      "gradient": [Color(0xFFf98f29), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
     },
     {
       "icon": Icons.phone,
       "text": "Airtime",
-      "gradient": [Color(0xFFf98f29), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
     },
     {
       "icon": Icons.electric_bolt,
       "text": "Electricity",
-      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
+      "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
     },
     {
       "icon": Icons.message_rounded,
       "text": "Bulk SMS",
-      "gradient": [Color(0xFFf98f29), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
     },
     {
       "icon": Icons.tv_rounded,
       "text": "Cable(TV)",
-      "gradient": [Color(0xFF001f3e), Color(0xFF001f3e).withOpacity(0.8)]
+       "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
     },
     {
       "icon": Icons.school_rounded,
       "text": "Result",
-      "gradient": [Color(0xFFf98f29), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
     },
     {
       "icon": Icons.card_giftcard,
       "text": "Giveaways",
-      "gradient": [Color(0xFF001f3e), Color(0xFF001f3e).withOpacity(0.8)]
+       "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
     },
     {
       "icon": Icons.people_rounded,
       "text": "Referral",
-      "gradient": [Color(0xFFf98f29), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
     },
   ];
 
@@ -63,16 +63,16 @@ class _CategoriesState extends State<Categories> {
           context, MaterialPageRoute(builder: (context) => const BuyData()));
     }
     if (title == 'Electricity') {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const BuyElectricity()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) => const BuyElectricity()));
     }
     if (title == 'Cable(TV)') {
       Navigator.push(
           context, MaterialPageRoute(builder: (context) => const BuyCable()));
     }
     if (title == 'Result') {
-      Navigator.push(
-          context, MaterialPageRoute(builder: (context) => const BuyExamination()));
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) => const BuyExamination()));
     }
     if (title == 'Referral') {
       Navigator.push(

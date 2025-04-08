@@ -384,6 +384,7 @@ class _BuyExaminationState extends State<BuyExamination> {
                               'Buy Now',
                               style: TextStyle(
                                 fontSize: 16,
+                                color : Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
