@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:vtubiz/pages/FundWallet.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DiscountBanner extends StatefulWidget {
   const DiscountBanner({super.key, this.auth_user});
@@ -12,12 +15,38 @@ class DiscountBanner extends StatefulWidget {
 
 class _DiscountBannerState extends State<DiscountBanner> {
   bool _isBalanceVisible = false;
+  Map<String, dynamic>? _userData;
+  @override
+  void initState() {
+    super.initState();
+    _userData = widget.auth_user;
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token') ?? '';
+
+    final response = await http.get(
+      Uri.parse('https://vtubiz.com/api/user'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      print(response.body);
+      setState(() {
+        _userData = jsonDecode(response.body);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final currencyFormatter = NumberFormat("#,##0.00", "en_US");
     final balance =
-        double.tryParse(widget.auth_user?['balance'].toString() ?? '0') ?? 0;
+        double.tryParse(_userData?['balance'].toString() ?? '0') ?? 0;
 
     return Container(
       width: double.infinity,
@@ -154,9 +183,7 @@ class _DiscountBannerState extends State<DiscountBanner> {
                   ),
                 ),
                 child: IconButton(
-                  onPressed: () {
-                    // Handle transaction history
-                  },
+                  onPressed: _loadUserData ,
                   icon: const Icon(
                     Icons.history_rounded,
                     color: Colors.white,

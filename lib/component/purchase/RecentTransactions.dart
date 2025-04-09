@@ -118,6 +118,11 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
       }
     } catch (e) {
       print(e);
+      _showResultDialog(
+          'Transaction Failed',
+          'Failed to redo transaction: ${e.toString()}}}',
+          false,
+        );
     }
   }
 

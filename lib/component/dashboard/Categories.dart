@@ -22,7 +22,8 @@ class _CategoriesState extends State<Categories> {
     {
       "icon": Icons.phone,
       "text": "Airtime",
-      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
+      "gradient": [Colors.grey[400]!, Colors.grey[600]!],
+      "isDisabled": true // Add this flag to handle disabled state
     },
     {
       "icon": Icons.electric_bolt,
@@ -32,12 +33,12 @@ class _CategoriesState extends State<Categories> {
     {
       "icon": Icons.message_rounded,
       "text": "Bulk SMS",
-      "gradient": [Color(0xFFf98f29), Color(0xFF001f3e).withOpacity(0.8)]
+      "gradient": [Colors.grey[400]!, Colors.grey[600]!],
     },
     {
       "icon": Icons.tv_rounded,
       "text": "Cable(TV)",
-       "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
     },
     {
       "icon": Icons.school_rounded,
@@ -47,7 +48,7 @@ class _CategoriesState extends State<Categories> {
     {
       "icon": Icons.card_giftcard,
       "text": "Giveaways",
-       "gradient": [Color(0xFF001f3e), Color(0xFFf98f29).withOpacity(0.8)]
+      "gradient": [Colors.grey[400]!, Colors.grey[600]!],
     },
     {
       "icon": Icons.people_rounded,

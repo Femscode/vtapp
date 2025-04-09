@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vtubiz/component/profile/ChangePassword.dart';
 import 'dart:convert';
 import 'dart:io';
-
+import 'package:intl/intl.dart';
 import 'package:vtubiz/component/profile/ChangePin.dart';
 import 'package:vtubiz/component/profile/DeleteAccount.dart';
 
@@ -135,6 +135,7 @@ class _ProfileState extends State<Profile> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Card(
+                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -185,22 +186,23 @@ class _ProfileState extends State<Profile> {
                                     fit: BoxFit.cover,
                                   ),
                                 ),
-                              const SizedBox(height: 16),
-                              TextFormField(
-                                readOnly: true,
-                                initialValue: _userData['bvn'] ?? '',
-                                decoration: const InputDecoration(
-                                  labelText: 'BVN',
-                                  border: OutlineInputBorder(),
-                                  prefixIcon: Icon(Icons.account_balance),
-                                ),
-                              ),
+                              // const SizedBox(height: 16),
+                              // TextFormField(
+                              //   readOnly: true,
+                              //   initialValue: _userData['bvn'] ?? '',
+                              //   decoration: const InputDecoration(
+                              //     labelText: 'BVN',
+                              //     border: OutlineInputBorder(),
+                              //     prefixIcon: Icon(Icons.account_balance),
+                              //   ),
+                              // ),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       Card(
+                        color: Colors.white,
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -217,20 +219,33 @@ class _ProfileState extends State<Profile> {
                               ListTile(
                                 title: const Text('Available Balance'),
                                 trailing: Text(
-                                  'NGN ${_userData['balance'] ?? 0}',
+                                  NumberFormat.currency(
+                                    locale: 'en_NG',
+                                    symbol: '₦',
+                                    decimalDigits: 2,
+                                  ).format(double.parse(
+                                      _userData['balance']?.toString() ?? '0')),
                                   style: const TextStyle(
                                     color: Colors.green,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
                                 ),
                               ),
                               ListTile(
                                 title: const Text('Total Money Spent'),
                                 trailing: Text(
-                                  'NGN ${_userData['total_spent'] ?? 0}',
+                                  NumberFormat.currency(
+                                    locale: 'en_NG',
+                                    symbol: '₦',
+                                    decimalDigits: 2,
+                                  ).format(double.parse(
+                                      _userData['total_spent']?.toString() ??
+                                          '0')),
                                   style: const TextStyle(
-                                    color: Colors.blue,
+                                    color: Colors.red,
                                     fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
                                 ),
                               ),
@@ -309,10 +324,11 @@ class _ProfileState extends State<Profile> {
               child: ElevatedButton(
                 onPressed: _updateProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: const Color(0xFF001f3e),
+                  padding: const EdgeInsets.symmetric(vertical: 24),
                 ),
-                child: const Text('Save Changes'),
+                child: const Text('Save Changes',
+                    style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
             ),
           ],

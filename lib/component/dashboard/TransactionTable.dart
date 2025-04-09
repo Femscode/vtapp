@@ -37,8 +37,13 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
   void _onScroll() {
     if (_scrollController.position.pixels ==
         _scrollController.position.maxScrollExtent) {
-      setState(() {
-        _currentPage++;
+      final userTransactionValue = ref.read(allTransactionProvider);
+      userTransactionValue.whenData((transactions) {
+        if (_currentPage * _itemsPerPage < transactions.length) {
+          setState(() {
+            _currentPage++;
+          });
+        }
       });
     }
   }
@@ -99,16 +104,17 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
     return transactions.sublist(startIndex, endIndex);
   }
 
+  bool get hasMoreData => false;
+
   @override
   Widget build(BuildContext context) {
-    final userTransactionValue = ref.watch(getTransactionProvider);
+    final userTransactionValue = ref.watch(allTransactionProvider);
 
     return userTransactionValue.when(
       data: (transactions) {
         final filteredTransactions = filterTransactions(transactions);
         final paginatedTransactions =
             paginateTransactions(filteredTransactions);
-
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.all(20),
@@ -162,135 +168,136 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
                   ),
                 )
               else
-                SingleChildScrollView(
-                  controller: _scrollController,
-                  child: Column(
-                    children: [
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: paginatedTransactions.length,
-                        itemBuilder: (context, index) {
-                          final transaction = paginatedTransactions[index];
-                          final status = transaction["status"].toString();
+                Column(
+                  children: [
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: paginatedTransactions.length,
+                      itemBuilder: (context, index) {
+                        final transaction = paginatedTransactions[index];
+                        final status = transaction["status"].toString();
 
-                          return GestureDetector(
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (context) => TransactionDetails(
-                                    transaction: transaction),
-                              );
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: getStatusColor(status),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              transaction["description"],
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF001f3e),
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                        return GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) =>
+                                  TransactionDetails(transaction: transaction),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: getStatusColor(status),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            transaction["description"],
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF001f3e),
                                             ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              "Ref: ${transaction["reference"]}",
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        "${transaction["type"] == 'debit' ? '-' : '+'}₦${transaction["amount"]}",
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: transaction["type"] == 'debit'
-                                              ? const Color(0xFFC62828)
-                                              : const Color(0xFF2E7D32),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          status == '1'
-                                              ? 'Completed'
-                                              : status == '2'
-                                                  ? 'Pending'
-                                                  : 'Failed',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: getStatusTextColor(status),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            "Ref: ${transaction["reference"]}",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Text(
-                                        formatDate(transaction["created_at"]),
+                                    ),
+                                    Text(
+                                      "${transaction["type"] == 'debit' ? '-' : '+'}₦${transaction["amount"]}",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: transaction["type"] == 'debit'
+                                            ? const Color(0xFFC62828)
+                                            : const Color(0xFF2E7D32),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        status == '1'
+                                            ? 'Completed'
+                                            : status == '2'
+                                                ? 'Pending'
+                                                : 'Failed',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey[600],
+                                          fontWeight: FontWeight.w600,
+                                          color: getStatusTextColor(status),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      if (paginatedTransactions.length <
-                          filteredTransactions.length)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: const Color(0xFF001f3e).withOpacity(0.5),
+                                    ),
+                                    Text(
+                                      formatDate(transaction["created_at"]),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
+                        );
+                      },
+                    ),
+                    if (_currentPage * _itemsPerPage <
+                        filteredTransactions.length)
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Center(
+                          child: TextButton(
+                            onPressed: () {
+                              setState(() {
+                                _currentPage++;
+                              });
+                            },
+                            child: const Text('Load More'),
+                          ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
             ],
           ),

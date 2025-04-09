@@ -97,6 +97,25 @@ Future<List<Map<String, dynamic>>> fetchTransactions(String token) async {
     throw Exception('Failed to fetch user data');
   }
 }
+Future<List<Map<String, dynamic>>> allTransactions(String token) async {
+  String url = 'https://vtubiz.com/api/transactions/all_transactions';
+  final user = await http.get(
+    Uri.parse(url),
+    headers: {'Authorization': 'Bearer $token'},
+  );
+
+  if (user.statusCode == 200 || user.statusCode == 201) {
+    final data = jsonDecode(user.body);
+
+    final transactions = data['transactions'] as List<dynamic>;
+
+    return transactions.map((e) => e as Map<String, dynamic>).toList();
+
+    // Transform to Map<String, String>
+  } else {
+    throw Exception('Failed to fetch user data');
+  }
+}
 
 Future<List<Map<String, dynamic>>> getLastTransactions(
     String token, String type) async {
@@ -163,6 +182,16 @@ final getTransactionProvider =
   final token = prefs.getString('token');
   if (token != null) {
     return fetchTransactions(token);
+  } else {
+    throw Exception('Token not found');
+  }
+});
+final allTransactionProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+  if (token != null) {
+    return allTransactions(token);
   } else {
     throw Exception('Token not found');
   }

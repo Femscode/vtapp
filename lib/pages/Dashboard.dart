@@ -4,8 +4,10 @@ import 'package:vtubiz/component/dashboard/Categories.dart';
 import 'package:vtubiz/component/dashboard/DiscountBanner.dart';
 import 'package:vtubiz/component/dashboard/Footer.dart';
 import 'package:vtubiz/component/dashboard/TransactionTable.dart';
+import 'package:vtubiz/pages/FundWallet.dart';
 import 'package:vtubiz/pages/OtpScreen.dart';
 import 'package:vtubiz/pages/Profile.dart';
+import 'package:vtubiz/pages/Referral.dart';
 import 'package:vtubiz/pages/Transaction.dart';
 import 'package:vtubiz/providers/authprovider.dart';
 import '../component/dashboard/HomeHeader.dart';
@@ -35,10 +37,17 @@ class _DashboardState extends ConsumerState<Dashboard> {
         );
         break;
       case 1:
-        print('Navigate to Referral');
+       Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Referral()),
+        );
         break;
       case 2:
         print('Navigate to Fund Wallet');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FundWallet()),
+        );
         break;
       case 3:
         Navigator.push(
