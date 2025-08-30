@@ -9,6 +9,7 @@ import 'package:vtubiz/component/purchase/SelectTime.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:flutter/services.dart';
 
 class BuyData extends StatefulWidget {
   const BuyData({Key? key}) : super(key: key);
@@ -17,13 +18,15 @@ class BuyData extends StatefulWidget {
   State<BuyData> createState() => _BuyDataState();
 }
 
-class _BuyDataState extends State<BuyData> {
+class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
   final TextEditingController _phoneController = TextEditingController();
   int? _selectedNetwork;
   Map<String, dynamic>? _selectedPlan;
   bool beneficiary_toggle = false;
   String _phone = '';
   bool isSelected = false;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
 
   // Add this function to normalize phone number
   String normalizePhoneNumber(String phone) {
@@ -84,6 +87,28 @@ class _BuyDataState extends State<BuyData> {
         detectAndSelectNetwork(_phone);
       });
     });
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeIn,
+    ));
+    
+    _animationController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void updateBeneficiaryToggle(bool value) {
@@ -317,12 +342,23 @@ class _BuyDataState extends State<BuyData> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: const Color(0xFF001f3e),
         elevation: 0,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFF001f3e),
+          statusBarIconBrightness: Brightness.light,
+        ),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            bottom: Radius.circular(20),
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
+          splashRadius: 24,
         ),
         title: const Text(
           'Buy Data Bundle',
@@ -330,252 +366,169 @@ class _BuyDataState extends State<BuyData> {
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Colors.white,
+            letterSpacing: 0.5,
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+            onPressed: () {
+              // Show info dialog about data bundles
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Data Bundle Info'),
+                  content: const Text('Purchase data bundles for any network. You can buy for yourself or others.'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK', style: TextStyle(color: Color(0xFF001f3e))),
+                    ),
+                  ],
+                ),
+              );
+            },
+            splashRadius: 24,
+          ),
+        ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF001f3e).withOpacity(0.05),
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const RecentTransactions(
-                  recentType: 'Data Purchase',
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFF001f3e).withOpacity(0.05),
-                        const Color(0xFF001f3e).withOpacity(0.05),
-                      ],
+          decoration: BoxDecoration(
+            color: const Color(0xFF001f3e).withOpacity(0.05),
+          ),
+          child: LayoutBuilder(builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const RecentTransactions(
+                      recentType: 'Data Purchase',
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 4),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color(0xFF001f3e).withOpacity(0.05),
+                            const Color(0xFF001f3e).withOpacity(0.05),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Network Selection Header
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Network Selection Header
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF001f3e)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Icon(
-                                    Icons.sim_card_rounded,
-                                    color: Color(0xFF001f3e),
-                                    size: 20,
+                                Expanded(
+                                  // 👈 makes this section shrink/wrap properly
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF001f3e)
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(
+                                          Icons.sim_card_rounded,
+                                          color: Color(0xFF001f3e),
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Flexible(
+                                        // 👈 ensures text doesn't overflow
+                                        child: Text(
+                                          'Select Network',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF001f3e),
+                                          ),
+                                          overflow: TextOverflow
+                                              .ellipsis, // 👈 truncate if too long
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Select Network',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF001f3e),
-                                  ),
+                                BeneficiarySelector(
+                                  type: 'data',
+                                  phoneController: _phoneController,
+                                  isToggled: beneficiary_toggle,
+                                  updateToggle: updateBeneficiaryToggle,
                                 ),
                               ],
                             ),
-                            BeneficiarySelector(
-                              type: 'data',
-                              phoneController: _phoneController,
-                              isToggled: beneficiary_toggle,
-                              updateToggle: updateBeneficiaryToggle,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Network Options
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFF001f3e).withOpacity(0.1),
                           ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            NetworkSelect(
-                              imageUrl: 'assets/mtn.png',
-                              name: 'MTN',
-                              isSelected: _selectedNetwork == 1,
-                              onTap: () => selectNetwork('MTN', 1),
-                            ),
-                            NetworkSelect(
-                              imageUrl: 'assets/glo.png',
-                              name: 'GLO',
-                              isSelected: _selectedNetwork == 2,
-                              onTap: () => selectNetwork('GLO', 2),
-                            ),
-                            NetworkSelect(
-                              imageUrl: 'assets/airtel.webp',
-                              name: 'Airtel',
-                              isSelected: _selectedNetwork == 3,
-                              onTap: () => selectNetwork('Airtel', 3),
-                            ),
-                            NetworkSelect(
-                              imageUrl: 'assets/nmobile.png',
-                              name: '9mobile',
-                              isSelected: _selectedNetwork == 4,
-                              onTap: () => selectNetwork('9mobile', 4),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                          const SizedBox(height: 20),
 
-                      Row(
-                        children: [
+                          // Network Options
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF001f3e).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.phone_rounded,
-                              color: Color(0xFF001f3e),
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Phone Number',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF001f3e),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Phone Number Input Section
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFF001f3e).withOpacity(0.1),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            TextField(
-                              controller: _phoneController,
-                              keyboardType: TextInputType.phone,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF001f3e),
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Enter phone number',
-                                hintStyle: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 15,
-                                ),
-                                filled: true,
-                                fillColor:
-                                    const Color(0xFF001f3e).withOpacity(0.05),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide.none,
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(
-                                    color: const Color(0xFF001f3e)
-                                        .withOpacity(0.1),
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFF001f3e),
-                                  ),
-                                ),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFF001f3e).withOpacity(0.1),
                               ),
                             ),
-                            BeneficiaryToggle(
-                              phone: _phone,
-                              isToggled: beneficiary_toggle,
-                              updateToggle: updateBeneficiaryToggle,
-                              type: 'data',
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                NetworkSelect(
+                                  imageUrl: 'assets/mtn.png',
+                                  name: 'MTN',
+                                  isSelected: _selectedNetwork == 1,
+                                  onTap: () => selectNetwork('MTN', 1),
+                                ),
+                                NetworkSelect(
+                                  imageUrl: 'assets/glo.png',
+                                  name: 'GLO',
+                                  isSelected: _selectedNetwork == 2,
+                                  onTap: () => selectNetwork('GLO', 2),
+                                ),
+                                NetworkSelect(
+                                  imageUrl: 'assets/airtel.webp',
+                                  name: 'Airtel',
+                                  isSelected: _selectedNetwork == 3,
+                                  onTap: () => selectNetwork('Airtel', 3),
+                                ),
+                                NetworkSelect(
+                                  imageUrl: 'assets/nmobile.png',
+                                  name: '9mobile',
+                                  isSelected: _selectedNetwork == 4,
+                                  onTap: () => selectNetwork('9mobile', 4),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                          ),
+                          const SizedBox(height: 24),
 
-                // ... rest of the widgets ...
-                if (isSelected)
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          const Color(0xFF001f3e).withOpacity(0.05),
-                          const Color(0xFF001f3e).withOpacity(0.05),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(children: [
+                          Row(
+                            children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
@@ -584,248 +537,382 @@ class _BuyDataState extends State<BuyData> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: const Icon(
-                                  Icons.keyboard_option_key,
+                                  Icons.phone_rounded,
                                   color: Color(0xFF001f3e),
                                   size: 20,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               const Text(
-                                'Select Plan',
+                                'Phone Number',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: Color(0xFF001f3e),
                                 ),
                               ),
-                            ]),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Phone Number Input Section
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
                                 color: const Color(0xFF001f3e).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.local_offer_rounded,
-                                    size: 16,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextField(
+                                  controller: _phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  style: const TextStyle(
+                                    fontSize: 16,
                                     color: Color(0xFF001f3e),
                                   ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Available Plans',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color(0xFF001f3e),
-                                      fontWeight: FontWeight.w500,
+                                  decoration: InputDecoration(
+                                    hintText: 'Enter phone number',
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 15,
+                                    ),
+                                    filled: true,
+                                    fillColor: const Color(0xFF001f3e)
+                                        .withOpacity(0.05),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                        color: const Color(0xFF001f3e)
+                                            .withOpacity(0.1),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF001f3e),
+                                      ),
                                     ),
                                   ),
-                                ],
+                                ),
+                                BeneficiaryToggle(
+                                  phone: _phone,
+                                  isToggled: beneficiary_toggle,
+                                  updateToggle: updateBeneficiaryToggle,
+                                  type: 'data',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ... rest of the widgets ...
+                    if (isSelected)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0xFF001f3e).withOpacity(0.05),
+                              const Color(0xFF001f3e).withOpacity(0.05),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF001f3e)
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.keyboard_option_key,
+                                      color: Color(0xFF001f3e),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Select Plan',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF001f3e),
+                                    ),
+                                  ),
+                                ]),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF001f3e)
+                                        .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.local_offer_rounded,
+                                        size: 16,
+                                        color: Color(0xFF001f3e),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Available Plans',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: const Color(0xFF001f3e),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            FetchPlan(
+                              type: 'data',
+                              network: _selectedNetwork ?? 1,
+                              onPlanSelected: (plan) {
+                                setState(() {
+                                  _selectedPlan = plan;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 24),
+                    if (isSelected)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF001f3e)
+                                          .withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : () => _showPinInputModal(),
+                                  icon: _isProcessing
+                                      ? Container(
+                                          width: 20,
+                                          height: 20,
+                                          child:
+                                              const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.flash_on_rounded,
+                                          size: 20),
+                                  label: Text(_isProcessing
+                                      ? 'Processing...'
+                                      : 'Buy Now'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF001f3e),
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor:
+                                        const Color(0xFF001f3e)
+                                            .withOpacity(0.7),
+                                    disabledForegroundColor:
+                                        Colors.white.withOpacity(0.8),
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.15),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: _isProcessing
+                                      ? null
+                                      : () async {
+                                          final DateTime? selectedDate =
+                                              await showDatePicker(
+                                            context: context,
+                                            initialDate: DateTime.now(),
+                                            firstDate: DateTime.now(),
+                                            lastDate: DateTime.now()
+                                                .add(const Duration(days: 30)),
+                                            builder: (context, child) {
+                                              return Theme(
+                                                data:
+                                                    Theme.of(context).copyWith(
+                                                  colorScheme:
+                                                      const ColorScheme.light(
+                                                    primary: Color(0xFF001f3e),
+                                                    onPrimary: Colors.white,
+                                                    surface: Colors.white,
+                                                    onSurface:
+                                                        Color(0xFF001f3e),
+                                                  ),
+                                                ),
+                                                child: child!,
+                                              );
+                                            },
+                                          );
+
+                                          if (selectedDate != null && mounted) {
+                                            final TimeOfDay? selectedTime =
+                                                await showTimePicker(
+                                              context: context,
+                                              initialTime: TimeOfDay.now(),
+                                              builder: (context, child) {
+                                                return Theme(
+                                                  data: Theme.of(context)
+                                                      .copyWith(
+                                                    timePickerTheme:
+                                                        TimePickerThemeData(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      hourMinuteTextColor:
+                                                          const Color(
+                                                              0xFF001f3e),
+                                                      dialHandColor:
+                                                          const Color(
+                                                              0xFF001f3e),
+                                                      dialBackgroundColor:
+                                                          const Color(
+                                                                  0xFF001f3e)
+                                                              .withOpacity(0.1),
+                                                    ),
+                                                    textButtonTheme:
+                                                        TextButtonThemeData(
+                                                      style:
+                                                          TextButton.styleFrom(
+                                                        foregroundColor:
+                                                            const Color(
+                                                                0xFF001f3e),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  child: child!,
+                                                );
+                                              },
+                                            );
+
+                                            if (selectedTime != null &&
+                                                mounted) {
+                                              _showPinInputModal(
+                                                scheduledDate: selectedDate,
+                                                scheduledTime: selectedTime,
+                                              );
+                                            }
+                                          }
+                                        },
+                                  icon: _isProcessing
+                                      ? Container(
+                                          width: 20,
+                                          height: 20,
+                                          child:
+                                              const CircularProgressIndicator(
+                                            color: const Color(0xFF001f3e),
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.schedule_rounded,
+                                          size: 20),
+                                  label: Text(_isProcessing
+                                      ? 'Processing...'
+                                      : 'Buy Later'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF001f3e),
+                                    disabledBackgroundColor:
+                                        Colors.white.withOpacity(0.7),
+                                    disabledForegroundColor:
+                                        const Color(0xFF001f3e)
+                                            .withOpacity(0.7),
+                                    textStyle: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      side: BorderSide(
+                                        color: _isProcessing
+                                            ? const Color(0xFF001f3e)
+                                                .withOpacity(0.3)
+                                            : const Color(0xFF001f3e),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        FetchPlan(
-                          type: 'data',
-                          network: _selectedNetwork ?? 1,
-                          onPlanSelected: (plan) {
-                            setState(() {
-                              _selectedPlan = plan;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                const SizedBox(height: 24),
-                if (isSelected)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color:
-                                      const Color(0xFF001f3e).withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton.icon(
-                              onPressed: _isProcessing
-                                  ? null
-                                  : () => _showPinInputModal(),
-                              icon: _isProcessing
-                                  ? Container(
-                                      width: 20,
-                                      height: 20,
-                                      child: const CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.flash_on_rounded,
-                                      size: 20),
-                              label: Text(
-                                  _isProcessing ? 'Processing...' : 'Buy Now'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF001f3e),
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor:
-                                    const Color(0xFF001f3e).withOpacity(0.7),
-                                disabledForegroundColor:
-                                    Colors.white.withOpacity(0.8),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.15),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton.icon(
-                              onPressed: _isProcessing
-                                  ? null
-                                  : () async {
-                                      final DateTime? selectedDate =
-                                          await showDatePicker(
-                                        context: context,
-                                        initialDate: DateTime.now(),
-                                        firstDate: DateTime.now(),
-                                        lastDate: DateTime.now()
-                                            .add(const Duration(days: 30)),
-                                        builder: (context, child) {
-                                          return Theme(
-                                            data: Theme.of(context).copyWith(
-                                              colorScheme:
-                                                  const ColorScheme.light(
-                                                primary: Color(0xFF001f3e),
-                                                onPrimary: Colors.white,
-                                                surface: Colors.white,
-                                                onSurface: Color(0xFF001f3e),
-                                              ),
-                                            ),
-                                            child: child!,
-                                          );
-                                        },
-                                      );
-
-                                      if (selectedDate != null && mounted) {
-                                        final TimeOfDay? selectedTime =
-                                            await showTimePicker(
-                                          context: context,
-                                          initialTime: TimeOfDay.now(),
-                                          builder: (context, child) {
-                                            return Theme(
-                                              data: Theme.of(context).copyWith(
-                                                timePickerTheme:
-                                                    TimePickerThemeData(
-                                                  backgroundColor: Colors.white,
-                                                  hourMinuteTextColor:
-                                                      const Color(0xFF001f3e),
-                                                  dialHandColor:
-                                                      const Color(0xFF001f3e),
-                                                  dialBackgroundColor:
-                                                      const Color(0xFF001f3e)
-                                                          .withOpacity(0.1),
-                                                ),
-                                                textButtonTheme:
-                                                    TextButtonThemeData(
-                                                  style: TextButton.styleFrom(
-                                                    foregroundColor:
-                                                        const Color(0xFF001f3e),
-                                                  ),
-                                                ),
-                                              ),
-                                              child: child!,
-                                            );
-                                          },
-                                        );
-
-                                        if (selectedTime != null && mounted) {
-                                          _showPinInputModal(
-                                            scheduledDate: selectedDate,
-                                            scheduledTime: selectedTime,
-                                          );
-                                        }
-                                      }
-                                    },
-                              icon: _isProcessing
-                                  ? Container(
-                                      width: 20,
-                                      height: 20,
-                                      child: const CircularProgressIndicator(
-                                        color: const Color(0xFF001f3e),
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.schedule_rounded,
-                                      size: 20),
-                              label: Text(_isProcessing
-                                  ? 'Processing...'
-                                  : 'Buy Later'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF001f3e),
-                                disabledBackgroundColor:
-                                    Colors.white.withOpacity(0.7),
-                                disabledForegroundColor:
-                                    const Color(0xFF001f3e).withOpacity(0.7),
-                                textStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  side: BorderSide(
-                                    color: _isProcessing
-                                        ? const Color(0xFF001f3e)
-                                            .withOpacity(0.3)
-                                        : const Color(0xFF001f3e),
-                                    width: 1,
-                                  ),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          })),
     );
   }
 }

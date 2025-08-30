@@ -1,4 +1,4 @@
-package com.example.vtubiz
+package com.vtubizpel.vtubiz
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -138,10 +138,11 @@ class _BeneficiarySelectorState extends ConsumerState<BeneficiarySelector> {
               color: const Color(0xFF001f3e),
               size: 20,
             ),
-             SizedBox(width: 8),
+            //  SizedBox(width: 8),
             Text(
-              'Select Beneficiary',
+              'Pick Beneficiary',
               style: TextStyle(
+                fontSize: 16,
                 color: const Color(0xFF001f3e),
                 fontWeight: FontWeight.w500,
               ),

@@ -320,7 +320,7 @@ class _BuyExaminationState extends State<BuyExamination> {
                                     ),
                                     filled: true,
                                     fillColor: Colors.grey[50],
-                                    prefixIcon: const Icon(Icons.attach_money),
+                                    prefixIcon: const Icon(Icons.money),
                                   ),
                                   controller: TextEditingController(
                                     text: _totalAmount.toString(),

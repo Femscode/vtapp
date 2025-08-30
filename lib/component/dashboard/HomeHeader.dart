@@ -1,8 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-class HomeHeader extends StatelessWidget {
-  const HomeHeader({super.key, this.auth_user});
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vtubiz/providers/authprovider.dart';
+
+class HomeHeader extends ConsumerStatefulWidget {
+  const HomeHeader({super.key, this.auth_user, this.onRefresh});
   final auth_user;
+  final VoidCallback? onRefresh;
+
+  @override
+  _HomeHeaderState createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends ConsumerState<HomeHeader> with TickerProviderStateMixin {
+  late AnimationController _refreshController;
+  bool _isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) return;
+    
+    setState(() {
+      _isRefreshing = true;
+    });
+    
+    _refreshController.repeat();
+    
+    // Invalidate providers to refresh data
+    ref.invalidate(getUserProvider);
+    ref.invalidate(getTransactionProvider);
+    ref.invalidate(allTransactionProvider);
+    
+    // Call the onRefresh callback if provided
+    if (widget.onRefresh != null) {
+      widget.onRefresh!();
+    }
+    
+    // Wait for a minimum duration to show the animation
+    await Future.delayed(const Duration(milliseconds: 1500));
+    
+    _refreshController.stop();
+    _refreshController.reset();
+    
+    if (mounted) {
+      setState(() {
+        _isRefreshing = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,16 +70,64 @@ class HomeHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: SearchField(user: auth_user)),
+          Expanded(child: SearchField(user: widget.auth_user)),
           const SizedBox(width: 16),
-         
-          const SizedBox(width: 8),
-          IconBtnWithCounter(
-            svgSrc: bellIcon,
-            numOfitem: 3,
-            press: () {},
+          // Refresh Button replacing IconBtnWithCounter
+          RefreshButton(
+            onRefresh: _handleRefresh,
+            isRefreshing: _isRefreshing,
+            refreshController: _refreshController,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class RefreshButton extends StatelessWidget {
+  const RefreshButton({
+    Key? key,
+    required this.onRefresh,
+    required this.isRefreshing,
+    required this.refreshController,
+  }) : super(key: key);
+
+  final VoidCallback onRefresh;
+  final bool isRefreshing;
+  final AnimationController refreshController;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(100),
+      onTap: isRefreshing ? null : onRefresh,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        height: 42,
+        width: 42,
+        decoration: BoxDecoration(
+          color: const Color(0xFF001f3e).withOpacity(0.05),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFF001f3e).withOpacity(0.1),
+            width: 1.5,
+          ),
+        ),
+        child: AnimatedBuilder(
+          animation: refreshController,
+          builder: (context, child) {
+            return Transform.rotate(
+              angle: refreshController.value * 2 * 3.14159,
+              child: Icon(
+                Icons.refresh_rounded,
+                color: isRefreshing 
+                    ? const Color(0xFF001f3e).withOpacity(0.6)
+                    : const Color(0xFF001f3e),
+                size: 20,
+              ),
+            );
+          },
+        ),
       ),
     );
   }

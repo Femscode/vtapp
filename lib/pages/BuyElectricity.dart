@@ -472,7 +472,7 @@ class _BuyElectricityState extends State<BuyElectricity> {
                                 ),
                                 filled: true,
                                 fillColor: Colors.grey[50],
-                                prefixIcon: const Icon(Icons.attach_money),
+                                prefixIcon: const Icon(Icons.money),
                               ),
                               keyboardType: TextInputType.number,
                               onChanged: (value) {
