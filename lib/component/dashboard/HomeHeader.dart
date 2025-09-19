@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vtubiz/providers/authprovider.dart';
+import 'package:vtubiz/pages/Profile.dart';
 
 class HomeHeader extends ConsumerStatefulWidget {
   const HomeHeader({super.key, this.auth_user, this.onRefresh});
@@ -12,7 +13,8 @@ class HomeHeader extends ConsumerStatefulWidget {
   _HomeHeaderState createState() => _HomeHeaderState();
 }
 
-class _HomeHeaderState extends ConsumerState<HomeHeader> with TickerProviderStateMixin {
+class _HomeHeaderState extends ConsumerState<HomeHeader>
+    with TickerProviderStateMixin {
   late AnimationController _refreshController;
   bool _isRefreshing = false;
 
@@ -33,29 +35,29 @@ class _HomeHeaderState extends ConsumerState<HomeHeader> with TickerProviderStat
 
   Future<void> _handleRefresh() async {
     if (_isRefreshing) return;
-    
+
     setState(() {
       _isRefreshing = true;
     });
-    
+
     _refreshController.repeat();
-    
+
     // Invalidate providers to refresh data
     ref.invalidate(getUserProvider);
     ref.invalidate(getTransactionProvider);
     ref.invalidate(allTransactionProvider);
-    
+
     // Call the onRefresh callback if provided
     if (widget.onRefresh != null) {
       widget.onRefresh!();
     }
-    
+
     // Wait for a minimum duration to show the animation
     await Future.delayed(const Duration(milliseconds: 1500));
-    
+
     _refreshController.stop();
     _refreshController.reset();
-    
+
     if (mounted) {
       setState(() {
         _isRefreshing = false;
@@ -120,7 +122,7 @@ class RefreshButton extends StatelessWidget {
               angle: refreshController.value * 2 * 3.14159,
               child: Icon(
                 Icons.refresh_rounded,
-                color: isRefreshing 
+                color: isRefreshing
                     ? const Color(0xFF001f3e).withOpacity(0.6)
                     : const Color(0xFF001f3e),
                 size: 20,
@@ -144,21 +146,29 @@ class SearchField extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: const Color(0xFF001f3e).withOpacity(0.1),
-                width: 2,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const Profile()),
+              );
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFF001f3e).withOpacity(0.1),
+                  width: 2,
+                ),
               ),
-            ),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundColor: const Color(0xFF001f3e).withOpacity(0.05),
-              child: Icon(
-                Icons.person_rounded,
-                color: const Color(0xFF001f3e),
-                size: 24,
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: const Color(0xFF001f3e).withOpacity(0.05),
+                child: Icon(
+                  Icons.person_rounded,
+                  color: const Color(0xFF001f3e),
+                  size: 24,
+                ),
               ),
             ),
           ),
@@ -264,6 +274,7 @@ class IconBtnWithCounter extends StatelessWidget {
     );
   }
 }
+
 const bellIcon =
     '''<svg width="15" height="20" viewBox="0 0 15 20" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path fill-rule="evenodd" clip-rule="evenodd" d="M13.9645 15.8912C13.9645 16.1628 13.7495 16.3832 13.4844 16.3832H9.22765H9.21987H1.51477C1.2505 16.3832 1.03633 16.1628 1.03633 15.8912V10.7327C1.03633 7.08053 3.93546 4.10885 7.50043 4.10885C11.0645 4.10885 13.9645 7.08053 13.9645 10.7327V15.8912ZM7.50043 18.9381C6.77414 18.9381 6.18343 18.3327 6.18343 17.5885C6.18343 17.5398 6.18602 17.492 6.19034 17.4442H8.81052C8.81484 17.492 8.81743 17.5398 8.81743 17.5885C8.81743 18.3327 8.22586 18.9381 7.50043 18.9381ZM9.12488 3.2292C9.35805 2.89469 9.49537 2.48673 9.49537 2.04425C9.49537 0.915044 8.6024 0 7.50043 0C6.39847 0 5.5055 0.915044 5.5055 2.04425C5.5055 2.48673 5.64281 2.89469 5.87512 3.2292C2.51828 3.99204 0 7.06549 0 10.7327V15.8912C0 16.7478 0.679659 17.4442 1.51477 17.4442H5.15142C5.14883 17.492 5.1471 17.5398 5.1471 17.5885C5.1471 18.9186 6.20243 20 7.50043 20C8.79843 20 9.8529 18.9186 9.8529 17.5885C9.8529 17.5398 9.85117 17.492 9.84858 17.4442H13.4844C14.3203 17.4442 15 16.7478 15 15.8912V10.7327C15 7.06549 12.4826 3.99204 9.12488 3.2292Z" fill="#626262"/>

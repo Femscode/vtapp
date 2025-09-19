@@ -87,13 +87,13 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
         detectAndSelectNetwork(_phone);
       });
     });
-    
+
     // Initialize animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -101,10 +101,10 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
       parent: _animationController,
       curve: Curves.easeIn,
     ));
-    
+
     _animationController.forward();
   }
-  
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -356,7 +356,8 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon:
+              const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
           splashRadius: 24,
         ),
@@ -379,12 +380,15 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: const Text('Data Bundle Info'),
-                  content: const Text('Purchase data bundles for any network. You can buy for yourself or others.'),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  content: const Text(
+                      'Purchase data bundles for any network. You can buy for yourself or others.'),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('OK', style: TextStyle(color: Color(0xFF001f3e))),
+                      child: const Text('OK',
+                          style: TextStyle(color: Color(0xFF001f3e))),
                     ),
                   ],
                 ),
@@ -486,41 +490,45 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
                           const SizedBox(height: 20),
 
                           // Network Options
+
                           Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFF001f3e).withOpacity(0.1),
-                              ),
-                            ),
+                           
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              mainAxisAlignment: MainAxisAlignment
+                                  .spaceEvenly, // Changed from spaceAround for better distribution
                               children: [
-                                NetworkSelect(
-                                  imageUrl: 'assets/mtn.png',
-                                  name: 'MTN',
-                                  isSelected: _selectedNetwork == 1,
-                                  onTap: () => selectNetwork('MTN', 1),
+                                Flexible(
+                                  // Added Flexible to prevent overflow
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/mtn.png',
+                                    name: 'MTN',
+                                    isSelected: _selectedNetwork == 1,
+                                    onTap: () => selectNetwork('MTN', 1),
+                                  ),
                                 ),
-                                NetworkSelect(
-                                  imageUrl: 'assets/glo.png',
-                                  name: 'GLO',
-                                  isSelected: _selectedNetwork == 2,
-                                  onTap: () => selectNetwork('GLO', 2),
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/glo.png',
+                                    name: 'GLO',
+                                    isSelected: _selectedNetwork == 2,
+                                    onTap: () => selectNetwork('GLO', 2),
+                                  ),
                                 ),
-                                NetworkSelect(
-                                  imageUrl: 'assets/airtel.webp',
-                                  name: 'Airtel',
-                                  isSelected: _selectedNetwork == 3,
-                                  onTap: () => selectNetwork('Airtel', 3),
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/airtel.webp',
+                                    name: 'Airtel',
+                                    isSelected: _selectedNetwork == 3,
+                                    onTap: () => selectNetwork('Airtel', 3),
+                                  ),
                                 ),
-                                NetworkSelect(
-                                  imageUrl: 'assets/nmobile.png',
-                                  name: '9mobile',
-                                  isSelected: _selectedNetwork == 4,
-                                  onTap: () => selectNetwork('9mobile', 4),
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/nmobile.png',
+                                    name: '9mobile',
+                                    isSelected: _selectedNetwork == 4,
+                                    onTap: () => selectNetwork('9mobile', 4),
+                                  ),
                                 ),
                               ],
                             ),

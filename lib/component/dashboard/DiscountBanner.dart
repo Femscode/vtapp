@@ -20,11 +20,12 @@ class _DiscountBannerState extends ConsumerState<DiscountBanner> {
   Widget build(BuildContext context) {
     final userAsyncValue = ref.watch(getUserProvider);
     final currencyFormatter = NumberFormat("#,##0.00", "en_US");
-    
+
     return userAsyncValue.when(
       data: (userData) {
-        final balance = double.tryParse(userData['balance'].toString() ?? '0') ?? 0;
-        
+        final balance =
+            double.tryParse(userData['balance'].toString() ?? '0') ?? 0;
+
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.all(20),
@@ -100,7 +101,7 @@ class _DiscountBannerState extends ConsumerState<DiscountBanner> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -109,10 +110,14 @@ class _DiscountBannerState extends ConsumerState<DiscountBanner> {
                         width: 1,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      color: Colors.white,
-                      size: 32,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/app-icon.png',
+                        width: 62,
+                        height: 62,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ],

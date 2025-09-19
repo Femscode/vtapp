@@ -244,7 +244,7 @@ class AuthScreen extends ConsumerWidget {
                                       : "Create Account",
                                   style: const TextStyle(
                                     fontSize: 16,
-                                    color:Color(  0xFFFFECDF),
+                                    color:Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
