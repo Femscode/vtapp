@@ -4,6 +4,9 @@ import 'package:vtubiz/providers/authprovider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class RecentTransactions extends ConsumerStatefulWidget {
   const RecentTransactions({super.key, required this.recentType});
@@ -24,105 +27,249 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
         context: context,
         builder: (_) => WillPopScope(
           onWillPop: () async => false,
-          child: AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
-                  color: isSuccess ? Colors.green : Colors.red,
-                  size: 28,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF001f3e),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 320),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF001f3e).withOpacity(0.08),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            content: Text(
-              message,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[800],
-                height: 1.4,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isSuccess ? Icons.check_circle_rounded : Icons.error_rounded,
+                          color: isSuccess ? const Color(0xFF34C759) : const Color(0xFFFF3B30),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                message,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            foregroundColor: const Color(0xFF001f3e),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Dismiss',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 5,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'OK',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       );
     });
   }
 
-  Future<void> redoTransaction(transactionId, String pin) async {
+  void _showProcessingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: const Color(0xFF001f3e).withOpacity(0.4),
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 4,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF00D2FF),
+                            ),
+                            backgroundColor: const Color(0xFF00D2FF).withOpacity(0.15),
+                          ),
+                        ),
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF001f3e).withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_clock_rounded,
+                            color: Color(0xFF001f3e),
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Processing Transaction',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please do not close this window or press back.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> redoTransaction(dynamic transactionId, String pin) async {
+    _showProcessingDialog();
     try {
       final token = await ref.read(tokenProvider.future);
-      print(token);
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/transactions/redo_transaction'),
+        Uri.parse('${AppConfig.liveUrl}/transactions/redo_transaction'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'transaction_id': transactionId,
+          'transaction_id': transactionId.toString(),
           'pin': pin,
         }),
       );
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loading dialog
+      }
+
       final responseData = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        // Handle success
-
-        _showResultDialog(
-          'Transaction Redone',
-          responseData['message'],
-          true,
-        );
+        if (responseData['success'].toString() == 'true') {
+          _showResultDialog(
+            'Transaction Redone',
+            responseData['message'] ?? 'Transaction processed successfully.',
+            true,
+          );
+          // Refresh state
+          ref.invalidate(getLastTransactionProvider(widget.recentType));
+          ref.invalidate(getTransactionProvider);
+          ref.invalidate(allTransactionProvider);
+          ref.invalidate(getUserProvider);
+        } else {
+          _showResultDialog(
+            'Transaction Failed',
+            responseData['message'] ?? 'Failed to redo transaction.',
+            false,
+          );
+        }
       } else {
-        // Handle error
         _showResultDialog(
           'Transaction Failed',
-          'Failed to redo transaction: ${responseData['message']}',
+          'Failed to redo transaction: ${responseData['message'] ?? "Unknown error"}',
           false,
         );
       }
     } catch (e) {
-      print(e);
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loading dialog
+      }
       _showResultDialog(
-          'Transaction Failed',
-          'Failed to redo transaction: ${e.toString()}}}',
-          false,
-        );
+        'Transaction Failed',
+        'Failed to redo transaction: ${e.toString()}',
+        false,
+      );
     }
   }
 
@@ -132,72 +279,117 @@ class _RecentTransactionsState extends ConsumerState<RecentTransactions> {
         ref.watch(getLastTransactionProvider(widget.recentType));
 
     return recentTransaction.when(
-      data: (transactions) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: transactions.map((transaction) {
-              return Container(
-                margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(8),
+      data: (transactions) {
+        if (transactions.isEmpty) return const SizedBox.shrink();
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 10),
+              child: Text(
+                'QUICK REDO',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF001f3e).withOpacity(0.6),
+                  letterSpacing: 0.2,
                 ),
-                child: Row(
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+            ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: transactions.map((transaction) {
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        ),
+                        builder: (context) {
+                          return InputPin(
+                            onProceed: (pin) {
+                              redoTransaction(transaction['id'].toString(), pin);
+                            },
+                            onCancel: () {},
+                          );
+                        },
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12, bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF001f3e).withOpacity(0.08),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
                           ),
-                          builder: (context) {
-                            return InputPin(
-                              onProceed: (pin) {
-                                print('Proceeded with PIN: $pin');
-                                redoTransaction(transaction['id'], pin);
-                                // Add your logic for proceeding with the PIN
-                              },
-                              onCancel: () {
-                                print('PIN input canceled');
-                              },
-                            );
-                          },
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 4),
-                        minimumSize: Size(0, 0),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        textStyle: TextStyle(fontSize: 12),
+                        ],
                       ),
-                      child: Text('Redo'),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF001f3e).withOpacity(0.04),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.refresh_rounded,
+                              size: 15,
+                              color: Color(0xFF001f3e),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                transaction['description'] ?? '',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '₦${transaction['amount']}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF00D2FF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${transaction['description']} | ',
-                    ),
-                    Text(
-                      '${transaction['amount']} | ',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (err, stack) => const SizedBox.shrink(),
     );
   }
 }

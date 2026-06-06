@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:vtubiz/providers/authprovider.dart';
 import 'package:vtubiz/pages/Profile.dart';
 
@@ -104,15 +105,21 @@ class RefreshButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(100),
       onTap: isRefreshing ? null : onRefresh,
       child: Container(
-        padding: const EdgeInsets.all(10),
-        height: 42,
-        width: 42,
+        height: 40,
+        width: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFF001f3e).withOpacity(0.05),
+          color: Colors.white,
           shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF001f3e).withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
           border: Border.all(
-            color: const Color(0xFF001f3e).withOpacity(0.1),
-            width: 1.5,
+            color: const Color(0xFF001f3e).withOpacity(0.06),
+            width: 1.2,
           ),
         ),
         child: AnimatedBuilder(
@@ -123,7 +130,7 @@ class RefreshButton extends StatelessWidget {
               child: Icon(
                 Icons.refresh_rounded,
                 color: isRefreshing
-                    ? const Color(0xFF001f3e).withOpacity(0.6)
+                    ? const Color(0xFF001f3e).withOpacity(0.5)
                     : const Color(0xFF001f3e),
                 size: 20,
               ),
@@ -139,8 +146,20 @@ class SearchField extends StatelessWidget {
   const SearchField({super.key, this.user});
   final Map<String, String>? user;
 
+  String _getInitials(String? name) {
+    if (name == null || name.trim().isEmpty) return 'U';
+    List<String> parts = name.trim().split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final name = user?['name'] ?? 'User';
+    final initials = _getInitials(name);
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -154,43 +173,71 @@ class SearchField extends StatelessWidget {
               );
             },
             child: Container(
+              padding: const EdgeInsets.all(2.5),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: const Color(0xFF001f3e).withOpacity(0.1),
-                  width: 2,
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF00D2FF),
+                    Color(0xFF5E5CE6),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00D2FF).withOpacity(0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: CircleAvatar(
-                radius: 22,
-                backgroundColor: const Color(0xFF001f3e).withOpacity(0.05),
-                child: Icon(
-                  Icons.person_rounded,
+              child: Container(
+                height: 44,
+                width: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
                   color: const Color(0xFF001f3e),
-                  size: 24,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back,',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
+                'Hello 👋',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                '${user?['name'] ?? 'User'}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF001f3e),
+                name,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF001f3e),
+                  letterSpacing: -0.3,
                 ),
               ),
             ],

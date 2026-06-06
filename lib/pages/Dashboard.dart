@@ -107,6 +107,7 @@ class _DashboardState extends ConsumerState<Dashboard> with RouteAware {
     final userAsyncValue = ref.watch(getUserProvider);
     return userAsyncValue.when(
       data: (user) => Scaffold(
+        backgroundColor: const Color(0xFFFAFBFD),
         body: user['pin'] == null
             ? const OtpScreen()
             : RefreshIndicator(
@@ -116,24 +117,54 @@ class _DashboardState extends ConsumerState<Dashboard> with RouteAware {
                   await Future.delayed(const Duration(milliseconds: 500));
                 },
                 color: const Color(0xFF001f3e),
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Column(
-                      children: [
-                        HomeHeader(
-                          auth_user: user,
-                          onRefresh: _refreshDashboardData,
+                child: Stack(
+                  children: [
+                    // Background decorative mesh gradient blobs
+                    Positioned(
+                      top: -100,
+                      right: -100,
+                      child: Container(
+                        width: 250,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF00D2FF).withOpacity(0.04),
                         ),
-                        DiscountBanner(auth_user: user),
-                        const Categories(),
-                        const SizedBox(height: 20),
-                        const TransactionTable(),
-                        const SizedBox(height: 20),
-                      ],
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      bottom: 100,
+                      left: -80,
+                      child: Container(
+                        width: 220,
+                        height: 220,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFF001f3e).withOpacity(0.03),
+                        ),
+                      ),
+                    ),
+
+                    SafeArea(
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Column(
+                          children: [
+                            HomeHeader(
+                              auth_user: user,
+                              onRefresh: _refreshDashboardData,
+                            ),
+                            DiscountBanner(auth_user: user),
+                            const Categories(),
+                            const SizedBox(height: 20),
+                            const TransactionTable(),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
         bottomNavigationBar: Footer(

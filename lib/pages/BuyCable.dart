@@ -5,6 +5,10 @@ import 'package:vtubiz/component/purchase/InputPin.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class BuyCable extends StatefulWidget {
   const BuyCable({Key? key}) : super(key: key);
@@ -15,6 +19,9 @@ class BuyCable extends StatefulWidget {
 
 class _BuyCableState extends State<BuyCable> {
   final TextEditingController _decoderController = TextEditingController();
+  final FocusNode _decoderFocusNode = FocusNode();
+  bool _decoderHasFocus = false;
+
   String _selectedCableType = '';
   String _selectedPlan = '';
   bool _showDetails = false;
@@ -26,8 +33,25 @@ class _BuyCableState extends State<BuyCable> {
 
   List<Map<String, dynamic>> _availablePlans = [];
   Map<String, dynamic>? _selectedPlanDetails;
-  bool _isLoadingDetails = false; // Add this
+  bool _isLoadingDetails = false;
   bool _isProcessingPurchase = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _decoderFocusNode.addListener(() {
+      setState(() {
+        _decoderHasFocus = _decoderFocusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _decoderFocusNode.dispose();
+    _decoderController.dispose();
+    super.dispose();
+  }
 
   void _showResultDialog(String title, String message, bool isSuccess) {
     if (!mounted) return;
@@ -38,64 +62,191 @@ class _BuyCableState extends State<BuyCable> {
         context: context,
         builder: (_) => WillPopScope(
           onWillPop: () async => false,
-          child: AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
-                  color: isSuccess ? Colors.green : Colors.red,
-                  size: 28,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF001f3e),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 320),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF001f3e).withOpacity(0.08),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            content: Text(
-              message,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[800],
-                height: 1.4,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isSuccess ? Icons.check_circle_rounded : Icons.error_rounded,
+                          color: isSuccess ? const Color(0xFF34C759) : const Color(0xFFFF3B30),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                message,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            foregroundColor: const Color(0xFF001f3e),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Dismiss',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 5,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'OK',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       );
     });
+  }
+
+  void _showProcessingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: const Color(0xFF001f3e).withOpacity(0.4),
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 4,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF00D2FF),
+                            ),
+                            backgroundColor: const Color(0xFF00D2FF).withOpacity(0.15),
+                          ),
+                        ),
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF001f3e).withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_clock_rounded,
+                            color: Color(0xFF001f3e),
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please do not close this window or press back.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   final List<Map<String, String>> _cableTypes = [
@@ -110,29 +261,35 @@ class _BuyCableState extends State<BuyCable> {
     setState(() {
       _availablePlans = [];
       _selectedPlanDetails = null;
+      _selectedPlan = '';
       _isLoadingDetails = true;
     });
+    _showProcessingDialog('Loading Cable Plans');
 
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       final response = await http.get(
-        Uri.parse(
-            'https://vtubiz.com/api/purchase/fetch_cable_plan/$_selectedCableType'),
+        Uri.parse('${AppConfig.liveUrl}/purchase/fetch_cable_plan/$_selectedCableType'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
 
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loader
+      }
+
       final data = jsonDecode(response.body);
-      print(data);
       setState(() {
         _availablePlans = List<Map<String, dynamic>>.from(data);
       });
     } catch (e) {
-      print('Error fetching plans: $e');
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loader
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to load available plans'),
@@ -162,12 +319,13 @@ class _BuyCableState extends State<BuyCable> {
     setState(() {
       _isLoadingDetails = true;
     });
+    _showProcessingDialog('Verifying Decoder Details');
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/purchase/fetch_decoder_details'),
+        Uri.parse('${AppConfig.liveUrl}/purchase/fetch_decoder_details'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -178,8 +336,11 @@ class _BuyCableState extends State<BuyCable> {
         }),
       );
 
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loader
+      }
+
       final data = jsonDecode(response.body);
-      print(data);
       if (data['success'].toString() == 'true' && data['message'] != null) {
         final content = data['message']['content'] as Map<String, dynamic>;
         setState(() {
@@ -196,18 +357,18 @@ class _BuyCableState extends State<BuyCable> {
         );
       }
     } catch (e) {
-      print(e);
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loader
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('An error occurred. Please try again later.'),
         ),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingDetails = false;
-        });
-      }
+      setState(() {
+        _isLoadingDetails = false;
+      });
     }
   }
 
@@ -215,13 +376,14 @@ class _BuyCableState extends State<BuyCable> {
     setState(() {
       _isProcessingPurchase = true;
     });
+    _showProcessingDialog('Processing Subscription');
 
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/purchase/buyCable'),
+        Uri.parse('${AppConfig.liveUrl}/purchase/buyCable'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -235,17 +397,13 @@ class _BuyCableState extends State<BuyCable> {
         }),
       );
 
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loader
+      }
+
       final data = jsonDecode(response.body);
-      print(data);
 
       if (data['success'].toString() == 'true') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Subscription successful!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
         _showResultDialog(
           'Subscription Successful!',
           'Your subscription has been completed successfully.',
@@ -259,299 +417,888 @@ class _BuyCableState extends State<BuyCable> {
         );
       }
     } catch (e) {
-      print('Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Network error. Please check your connection and try again.'),
-          backgroundColor: Colors.red,
-        ),
+      if (mounted) {
+        Navigator.of(context).pop(); // Dismiss loader
+      }
+      _showResultDialog(
+        'Network Error',
+        'Please check your connection and try again.',
+        false,
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessingPurchase = false;
-        });
-      }
+      setState(() {
+        _isProcessingPurchase = false;
+      });
     }
+  }
+
+  Widget _buildSummaryCard() {
+    if (_selectedPlanDetails == null) return const SizedBox.shrink();
+    String cableName = _cableTypes.firstWhere((element) => element['value'] == _selectedCableType, orElse: () => {"label": "Cable TV"})['label']!;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 24, bottom: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFF00D2FF).withOpacity(0.15),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00D2FF).withOpacity(0.04),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'TRANSACTION SUMMARY',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF001f3e).withOpacity(0.4),
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00D2FF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Swipe to Confirm',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0088CC),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF001f3e).withOpacity(0.05),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.tv_rounded,
+                  color: Color(0xFF001f3e),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedPlanDetails?['plan_name'] ?? '',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Decoder: ${_decoderController.text}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Divider(
+            color: const Color(0xFF001f3e).withOpacity(0.06),
+            height: 1,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Provider',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                cableName,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF001f3e),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Customer Name',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                _customerName,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF001f3e),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Amount to Pay',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '₦$_amount',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  color: const Color(0xFF00D2FF),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SlideToConfirm(
+                  text: 'Slide to Subscribe',
+                  isEnabled: !_isProcessingPurchase,
+                  onConfirm: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      builder: (context) => InputPin(
+                        onProceed: (pin) => _buyCable(pin),
+                        onCancel: () {},
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      // Schedule functionality mock or trigger
+                    },
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF001f3e).withOpacity(0.15),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.schedule_rounded,
+                        color: Color(0xFF001f3e),
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Buy Later',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF001f3e).withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Buy Cable TV',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: const Color(0xFF001f3e).withOpacity(0.06),
+            height: 1.0,
           ),
         ),
-        backgroundColor: const Color(0xFF001f3e),
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF001f3e)),
+          onPressed: () => Navigator.of(context).pop(),
+          splashRadius: 24,
+        ),
+        title: Text(
+          'Cable TV Subscription',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF001f3e),
+            letterSpacing: -0.2,
+          ),
+        ),
+        centerTitle: true,
       ),
-      backgroundColor: Colors.grey[100],
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              color: const Color(0xFF001f3e),
-              height: 5,
-              width: double.infinity,
+      body: Stack(
+        children: [
+          // Background mesh circles
+          Positioned(
+            top: -80,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF00D2FF).withOpacity(0.04),
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -80,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF001f3e).withOpacity(0.03),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    color: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  // Card 1: Setup Details
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: const Color(0xFF001f3e).withOpacity(0.06),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF001f3e).withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.settings_input_hdmi_rounded,
+                                    color: Color(0xFF001f3e),
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Decoder Details',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF001f3e),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            BeneficiarySelector(
+                              type: 'cable',
+                              phoneController: _decoderController,
+                              isToggled: beneficiary_toggle,
+                              updateToggle: updateBeneficiaryToggle,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        DropdownButtonFormField<String>(
+                          value: _selectedCableType.isEmpty ? null : _selectedCableType,
+                          decoration: InputDecoration(
+                            labelText: 'Select Operator',
+                            labelStyle: GoogleFonts.plusJakartaSans(
+                              color: Colors.grey[400],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide(
+                                color: const Color(0xFF001f3e).withOpacity(0.08),
+                                width: 1.5,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF00D2FF),
+                                width: 1.8,
+                              ),
+                            ),
+                          ),
+                          items: _cableTypes.map((type) {
+                            return DropdownMenuItem(
+                              value: type['value'],
+                              child: Text(
+                                type['label']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedCableType = value!;
+                              _selectedPlan = '';
+                              _selectedPlanDetails = null;
+                            });
+                            _fetchAvailablePlans();
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              if (_decoderHasFocus)
+                                BoxShadow(
+                                  color: const Color(0xFF00D2FF).withOpacity(0.12),
+                                  blurRadius: 10,
+                                  spreadRadius: 1,
+                                )
+                              else
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.01),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _decoderController,
+                            focusNode: _decoderFocusNode,
+                            keyboardType: TextInputType.number,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              color: const Color(0xFF001f3e),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Enter decoder number',
+                              hintStyle: GoogleFonts.plusJakartaSans(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              filled: true,
+                              fillColor: _decoderHasFocus ? Colors.white : const Color(0xFFF8FAFC),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: const Color(0xFF001f3e).withOpacity(0.08),
+                                  width: 1.5,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF00D2FF),
+                                  width: 1.8,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        BeneficiaryToggle(
+                          phone: _decoderController.text.trim(),
+                          isToggled: beneficiary_toggle,
+                          updateToggle: updateBeneficiaryToggle,
+                          type: 'cable',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Card 2: Customer details verified
+                  if (_showDetails) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFF34C759).withOpacity(0.15),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              BeneficiarySelector(
-                                type: 'cable',
-                                phoneController: _decoderController,
-                                isToggled: beneficiary_toggle,
-                                updateToggle: updateBeneficiaryToggle,
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF34C759).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.verified_user_rounded,
+                                  color: Color(0xFF34C759),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Verification Info',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Customer Name',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: Colors.grey[500],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _customerName,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                color: const Color(0xFF001f3e),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Current Bouquet',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: Colors.grey[500],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _bouquet.isEmpty ? 'N/A' : _bouquet,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                color: const Color(0xFF001f3e),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              'Status',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: Colors.grey[500],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              _status,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                color: _status.toLowerCase() == 'active' ? const Color(0xFF34C759) : const Color(0xFFFF2D55),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Card 3: Select Plan Dropdown
+                  if (_showDetails && _availablePlans.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFF001f3e).withOpacity(0.06),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF001f3e).withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(
+                                  Icons.layers_rounded,
+                                  color: Color(0xFF001f3e),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Choose Package',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
-                            value: _selectedCableType.isEmpty
-                                ? null
-                                : _selectedCableType,
+                            value: _selectedPlan.isEmpty ? null : _selectedPlan,
                             decoration: InputDecoration(
-                              labelText: 'Cable Type',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              labelText: 'Available Plans',
+                              labelStyle: GoogleFonts.plusJakartaSans(
+                                color: Colors.grey[400],
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
                               ),
                               filled: true,
-                              fillColor: Colors.grey[50],
+                              fillColor: const Color(0xFFF8FAFC),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: const Color(0xFF001f3e).withOpacity(0.08),
+                                  width: 1.5,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF00D2FF),
+                                  width: 1.8,
+                                ),
+                              ),
                             ),
-                            items: _cableTypes.map((type) {
+                            items: _availablePlans.map((plan) {
                               return DropdownMenuItem(
-                                value: type['value'],
-                                child: Text(type['label']!),
+                                value: plan['plan_id'].toString(),
+                                child: Text(
+                                  '${plan['plan_name']} - ₦${plan['admin_price']}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: const Color(0xFF001f3e),
+                                  ),
+                                ),
                               );
                             }).toList(),
                             onChanged: (value) {
                               setState(() {
-                                _selectedCableType = value!;
-                                _selectedPlan = '';
-                                _selectedPlanDetails = null;
+                                _selectedPlan = value ?? '';
+                                _selectedPlanDetails = _availablePlans.firstWhere(
+                                  (plan) => plan['plan_id'].toString() == value,
+                                  orElse: () => {},
+                                );
+                                _amount = double.tryParse(_selectedPlanDetails?['admin_price'].toString() ?? '0') ?? 0;
                               });
-                              _fetchAvailablePlans();
                             },
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _decoderController,
-                            decoration: InputDecoration(
-                              labelText: 'Decoder Number',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[50],
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                          BeneficiaryToggle(
-                            phone: _decoderController.text.trim(),
-                            isToggled: beneficiary_toggle,
-                            updateToggle: updateBeneficiaryToggle,
-                            type: 'cable',
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  if (_showDetails) ...[
-                    const SizedBox(height: 16),
-                    Card(
-                      color: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Customer Details',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                  ],
+
+                  // Action or summary card
+                  if (!_showDetails) ...[
+                    const SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF001f3e), Color(0xFF0A3663)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF001f3e).withOpacity(0.25),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
                             ),
-                            const SizedBox(height: 16),
-                            ListTile(
-                              leading: const Icon(Icons.person,
-                                  color: Color(0xFF001f3e)),
-                              title: const Text('Customer Name'),
-                              subtitle: Text(_customerName),
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.tv,
-                                  color: Color(0xFF001f3e)),
-                              title: const Text('Current Bouquet'),
-                              subtitle: Text(_bouquet),
-                            ),
-                            ListTile(
-                              leading: const Icon(
-                                  Icons.signal_wifi_statusbar_4_bar_outlined,
-                                  color: Color(0xFF001f3e)),
-                              title: const Text('Status'),
-                              subtitle: Text(_status),
-                            ),
-                            const SizedBox(height: 16),
-                            if (_availablePlans.isNotEmpty) ...[
-                              const SizedBox(height: 16),
-                              Card(
-                                color: Colors.white,
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Select Plan',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      DropdownButtonFormField<String>(
-                                        value: _selectedPlan.isEmpty
-                                            ? null
-                                            : _selectedPlan,
-                                        decoration: InputDecoration(
-                                          labelText: 'Available Plans',
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          filled: true,
-                                          fillColor: Colors.grey[50],
-                                        ),
-                                        items: _availablePlans.map((plan) {
-                                          return DropdownMenuItem(
-                                            value: plan['plan_id'].toString(),
-                                            child: Text(
-                                                '${plan['plan_name']} - ₦${plan['admin_price']}'),
-                                          );
-                                        }).toList(),
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedPlan = value ?? '';
-                                            _selectedPlanDetails =
-                                                _availablePlans.firstWhere(
-                                              (plan) =>
-                                                  plan['plan_id'].toString() ==
-                                                  value,
-                                              orElse: () => {},
-                                            );
-                                            _amount = double.tryParse(
-                                                    _selectedPlanDetails?[
-                                                                'admin_price']
-                                                            .toString() ??
-                                                        '0') ??
-                                                0;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: (_isLoadingDetails || _isProcessingPurchase)
-                          ? null
-                          : _showDetails
-                              ? () {
-                                  showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    shape: const RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.vertical(
-                                          top: Radius.circular(20)),
-                                    ),
-                                    builder: (context) => InputPin(
-                                      onProceed: (pin) => _buyCable(pin),
-                                      onCancel: () {
-                                        // if (mounted) Navigator.of(context).pop();
-                                      },
-                                    ),
-                                  );
-                                }
+                        child: ElevatedButton(
+                          onPressed: (_isLoadingDetails || _selectedCableType.isEmpty || _decoderController.text.isEmpty)
+                              ? null
                               : _fetchDecoderDetails,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF001f3e),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: _isLoadingDetails || _isProcessingPurchase
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : Text(
-                              _showDetails
-                                  ? 'Subscribe Now'
-                                  : 'Confirm Details',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
+                          ),
+                          child: Text(
+                            'Confirm Decoder Details',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ] else ...[
+                    _buildSummaryCard(),
+                  ],
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+// SlideToConfirm custom slider widget
+class SlideToConfirm extends StatefulWidget {
+  final VoidCallback onConfirm;
+  final String text;
+  final bool isEnabled;
+
+  const SlideToConfirm({
+    Key? key,
+    required this.onConfirm,
+    required this.text,
+    this.isEnabled = true,
+  }) : super(key: key);
+
+  @override
+  State<SlideToConfirm> createState() => _SlideToConfirmState();
+}
+
+class _SlideToConfirmState extends State<SlideToConfirm> {
+  double _dragPosition = 0.0;
+  bool _isConfirmed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxDrag = constraints.maxWidth - 56.0 - 8.0;
+        return Container(
+          height: 64,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: widget.isEnabled ? const Color(0xFF001f3e).withOpacity(0.04) : Colors.grey[200],
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: widget.isEnabled ? const Color(0xFF001f3e).withOpacity(0.08) : Colors.grey[300]!,
+              width: 1.5,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Center(
+                child: Text(
+                  widget.text,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: widget.isEnabled ? const Color(0xFF001f3e).withOpacity(0.6) : Colors.grey[400],
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: Duration(milliseconds: _dragPosition == 0.0 || _isConfirmed ? 200 : 0),
+                left: _dragPosition,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    if (!widget.isEnabled || _isConfirmed) return;
+                    setState(() {
+                      _dragPosition = (_dragPosition + details.delta.dx).clamp(0.0, maxDrag);
+                    });
+                  },
+                  onHorizontalDragEnd: (details) {
+                    if (!widget.isEnabled || _isConfirmed) return;
+                    if (_dragPosition >= maxDrag * 0.85) {
+                      setState(() {
+                        _dragPosition = maxDrag;
+                        _isConfirmed = true;
+                      });
+                      widget.onConfirm();
+                      Future.delayed(const Duration(milliseconds: 1500), () {
+                        if (mounted) {
+                          setState(() {
+                            _dragPosition = 0.0;
+                            _isConfirmed = false;
+                          });
+                        }
+                      });
+                    } else {
+                      setState(() {
+                        _dragPosition = 0.0;
+                      });
+                    }
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF001f3e), Color(0xFF0A3663)],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF001f3e).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _isConfirmed ? Icons.check : Icons.arrow_forward_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

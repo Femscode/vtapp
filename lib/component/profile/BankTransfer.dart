@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
 import 'dart:async';
+
 
 class BankTransfer extends StatefulWidget {
   final double amount;
@@ -45,7 +47,8 @@ class _BankTransferState extends State<BankTransfer> {
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/profile/generate-virtual-account'),
+        Uri.parse('${AppConfig.liveUrl}/profile/generate-virtual-account'),
+
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:vtubiz/component/dashboard/TransactionDetails.dart';
 import 'package:vtubiz/component/purchase/InputPin.dart';
 import 'package:vtubiz/providers/authprovider.dart';
@@ -6,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+
 
 class TransactionTable extends ConsumerStatefulWidget {
   final String selectedFilter;
@@ -135,7 +138,8 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
     try {
       final token = await ref.read(tokenProvider.future);
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/transactions/redo_transaction'),
+        Uri.parse('${AppConfig.liveUrl}/transactions/redo_transaction'),
+
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -189,25 +193,82 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
   }
 
   Color getStatusColor(String status) {
+    return Colors.white;
+  }
+
+  Color getStatusBadgeColor(String status) {
     switch (status) {
       case '1':
-        return const Color(0xFF001f3e).withOpacity(0.08);
+        return const Color(0xFFE2F9EC); // soft green
       case '2':
-        return const Color(0xFFF98F29).withOpacity(0.08);
+        return const Color(0xFFFFF4E5); // soft orange
       default:
-        return Colors.red.withOpacity(0.08);
+        return const Color(0xFFFFEBEB); // soft red
     }
   }
 
   Color getStatusTextColor(String status) {
     switch (status) {
       case '1':
-        return const Color(0xFF001f3e);
+        return const Color(0xFF1B8749); // bold green
       case '2':
-        return const Color(0xFFF98F29);
+        return const Color(0xFFD97706); // bold orange/amber
       default:
-        return const Color(0xFFD32F2F);
+        return const Color(0xFFE53E3E); // bold red
     }
+  }
+
+  Widget getTransactionIcon(Map<String, dynamic> transaction) {
+    final description = transaction['description']?.toString().toLowerCase() ?? '';
+    final type = transaction['type']?.toString().toLowerCase() ?? '';
+    
+    IconData iconData = Icons.payment_rounded;
+    Color iconColor = const Color(0xFF001F3E);
+    Color bgColor = const Color(0xFFF1F5F9);
+    
+    if (type == 'credit') {
+      iconData = Icons.arrow_downward_rounded;
+      iconColor = const Color(0xFF1B8749);
+      bgColor = const Color(0xFFE2F9EC);
+    } else if (description.contains('data')) {
+      iconData = Icons.wifi_rounded;
+      iconColor = const Color(0xFF0A84FF);
+      bgColor = const Color(0xFFE5F1FF);
+    } else if (description.contains('airtime')) {
+      iconData = Icons.phone_rounded;
+      iconColor = const Color(0xFF00D2FF);
+      bgColor = const Color(0xFFE0FAFF);
+    } else if (description.contains('electric') || description.contains('power')) {
+      iconData = Icons.electric_bolt_rounded;
+      iconColor = const Color(0xFFFFB300);
+      bgColor = const Color(0xFFFFF8E5);
+    } else if (description.contains('cable') || description.contains('tv')) {
+      iconData = Icons.tv_rounded;
+      iconColor = const Color(0xFFBF5AF2);
+      bgColor = const Color(0xFFF9EFFF);
+    } else if (description.contains('refer')) {
+      iconData = Icons.people_rounded;
+      iconColor = const Color(0xFF34C759);
+      bgColor = const Color(0xFFEAF9EC);
+    } else if (description.contains('exam') || description.contains('result')) {
+      iconData = Icons.school_rounded;
+      iconColor = const Color(0xFF5E5CE6);
+      bgColor = const Color(0xFFECECFF);
+    }
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        iconData,
+        color: iconColor,
+        size: 18,
+      ),
+    );
   }
 
   List<Map<String, dynamic>> filterTransactions(List<dynamic> transactions) {
@@ -252,52 +313,59 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
             paginateTransactions(filteredTransactions);
         return Container(
           width: double.infinity,
-          margin: const EdgeInsets.all(20),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF001f3e).withOpacity(0.02),
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: const Color(0xFF001f3e).withOpacity(0.1),
-              width: 1,
+              color: const Color(0xFF001f3e).withOpacity(0.04),
+              width: 1.5,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF001f3e).withOpacity(0.02),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       "${widget.selectedFilter} Transactions",
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF001f3e),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
                       ),
                     ),
                     Text(
                       "${paginatedTransactions.length} of ${filteredTransactions.length}",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
               ),
               if (filteredTransactions.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(20),
+                Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Center(
                     child: Text(
                       'No transactions found',
-                      style: TextStyle(
-                        color: Color(0xFF001f3e),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF001f3e),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -328,68 +396,75 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
                           },
                           child: Container(
                             margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: getStatusColor(status),
-                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: const Color(0xFF001f3e).withOpacity(0.06),
+                                width: 1.2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.015),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                // Category Icon
+                                getTransactionIcon(transaction),
+                                const SizedBox(width: 12),
+                                // Middle section: Title & Time
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        transaction["title"] + (transaction['phone_number'] != null ? ' on ' + transaction['phone_number'] : ''),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF001f3e),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        formatDate(transaction["created_at"]),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          color: Colors.grey[500],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                // Right section: Amount & Badge / Redo
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            transaction["title"] + (transaction['phone_number'] != null ? ' on ' + transaction['phone_number'] : ''),
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF001f3e),
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 4),
-                                          transaction['description'] == 'Data purchase' ||  transaction['description'] == 'Airtime Purchase' ?
-                                          Text(
-                                            "Phone: ${transaction["phone_number"]}",
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ) : 
-                                          Text(
-                                            "Description: ${transaction["description"]}",
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          )
-                                          ,
-                                        ],
+                                    Text(
+                                      "${transaction["type"] == 'debit' ? '-' : '+'}₦${transaction["amount"]}",
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: transaction["type"] == 'debit'
+                                            ? const Color(0xFFFF2D55)
+                                            : const Color(0xFF34C759),
                                       ),
                                     ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text(
-                                          "${transaction["type"] == 'debit' ? '-' : '+'}₦${transaction["amount"]}",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: transaction["type"] == 'debit'
-                                                ? const Color(0xFFC62828)
-                                                : const Color(0xFF2E7D32),
-                                          ),
-                                        ),
-                                        if (canRedo) 
-                                          const SizedBox(height: 8),
+                                        if (canRedo) ...[
                                           GestureDetector(
                                             onTap: isCurrentlyRedoing ? null : () {
                                               showModalBottomSheet(
@@ -414,6 +489,7 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
                                                 horizontal: 8,
                                                 vertical: 4,
                                               ),
+                                              margin: const EdgeInsets.only(right: 6),
                                               decoration: BoxDecoration(
                                                 color: isCurrentlyRedoing 
                                                     ? Colors.grey[400]
@@ -425,74 +501,52 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
                                                       mainAxisSize: MainAxisSize.min,
                                                       children: [
                                                         SizedBox(
-                                                          width: 12,
-                                                          height: 12,
+                                                          width: 10,
+                                                          height: 10,
                                                           child: CircularProgressIndicator(
-                                                            strokeWidth: 2,
+                                                            strokeWidth: 1.5,
                                                             valueColor: AlwaysStoppedAnimation<Color>(
                                                               Colors.white,
                                                             ),
                                                           ),
                                                         ),
-                                                        const SizedBox(width: 4),
-                                                        const Text(
-                                                          'Processing...',
-                                                          style: TextStyle(
-                                                            fontSize: 10,
-                                                            fontWeight: FontWeight.w600,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
                                                       ],
                                                     )
-                                                  : const Text(
+                                                  : Text(
                                                       'Redo',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.w600,
+                                                      style: GoogleFonts.plusJakartaSans(
+                                                        fontSize: 10,
+                                                        fontWeight: FontWeight.bold,
                                                         color: Colors.white,
                                                       ),
                                                     ),
                                             ),
                                           ),
-                                        
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        status == '1'
-                                            ? 'Completed'
-                                            : status == '2'
-                                                ? 'Pending'
-                                                : 'Failed',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: getStatusTextColor(status),
+                                        ],
+                                        // Badge Pill
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: getStatusBadgeColor(status),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            status == '1'
+                                                ? 'Completed'
+                                                : status == '2'
+                                                    ? 'Pending'
+                                                    : 'Failed',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: getStatusTextColor(status),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    Text(
-                                      formatDate(transaction["created_at"]),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -513,7 +567,13 @@ class _TransactionTableState extends ConsumerState<TransactionTable> {
                                 _currentPage++;
                               });
                             },
-                            child: const Text('Load More'),
+                            child: Text(
+                              'Load More',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF001f3e),
+                              ),
+                            ),
                           ),
                         ),
                       ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+
 import 'package:vtubiz/providers/authprovider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
@@ -32,7 +34,8 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
     try {
       final token = await ref.read(tokenProvider.future);
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/beneficiary/create_beneficiary'),
+        Uri.parse('${AppConfig.liveUrl}/beneficiary/create_beneficiary'),
+
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -71,7 +74,8 @@ class _BeneficiaryToggleState extends ConsumerState<BeneficiaryToggle> {
     try {
       final token = await ref.read(tokenProvider.future);
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/beneficiary/remove_beneficiary'),
+        Uri.parse('${AppConfig.liveUrl}/beneficiary/remove_beneficiary'),
+
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

@@ -5,11 +5,14 @@ import 'package:vtubiz/component/purchase/FetchPlan.dart';
 import 'package:vtubiz/component/purchase/InputPin.dart';
 import 'package:vtubiz/component/purchase/NetworkSelect.dart';
 import 'package:vtubiz/component/purchase/RecentTransactions.dart';
-import 'package:vtubiz/component/purchase/SelectTime.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
+
 
 class BuyData extends StatefulWidget {
   const BuyData({Key? key}) : super(key: key);
@@ -18,30 +21,24 @@ class BuyData extends StatefulWidget {
   State<BuyData> createState() => _BuyDataState();
 }
 
-class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
+class _BuyDataState extends State<BuyData> {
   final TextEditingController _phoneController = TextEditingController();
+  final FocusNode _phoneFocusNode = FocusNode();
+  bool _phoneHasFocus = false;
   int? _selectedNetwork;
   Map<String, dynamic>? _selectedPlan;
   bool beneficiary_toggle = false;
   String _phone = '';
   bool isSelected = false;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
+  bool _isProcessing = false;
 
-  // Add this function to normalize phone number
   String normalizePhoneNumber(String phone) {
-    // Remove any spaces or special characters
     phone = phone.replaceAll(RegExp(r'[\s\-\(\)]'), '');
-
-    // Convert +234 to 0
     if (phone.startsWith('+234')) {
       phone = '0${phone.substring(4)}';
-    }
-    // Convert 234 to 0
-    else if (phone.startsWith('234')) {
+    } else if (phone.startsWith('234')) {
       phone = '0${phone.substring(3)}';
     }
-
     return phone;
   }
 
@@ -52,29 +49,24 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
     if (normalizedNumber.length >= 4) {
       String prefix = normalizedNumber.substring(0, 4);
 
-      setState(() {
-        // MTN prefixes
-        if (RegExp(r'^0(703|706|803|806|810|813|814|903|904|906)')
-            .hasMatch(prefix)) {
-          _selectedNetwork = 1;
+      int? detectedNetwork;
+      if (RegExp(r'^0(703|706|803|806|810|813|814|903|904|906)').hasMatch(prefix)) {
+        detectedNetwork = 1;
+      } else if (RegExp(r'^0(705|805|807|811|815|905)').hasMatch(prefix)) {
+        detectedNetwork = 2;
+      } else if (RegExp(r'^0(701|708|802|808|902)').hasMatch(prefix)) {
+        detectedNetwork = 3;
+      } else if (RegExp(r'^0(809|817|818|908|909)').hasMatch(prefix)) {
+        detectedNetwork = 4;
+      }
+
+      if (detectedNetwork != null && detectedNetwork != _selectedNetwork) {
+        setState(() {
+          _selectedNetwork = detectedNetwork;
           isSelected = true;
-        }
-        // GLO prefixes
-        else if (RegExp(r'^0(705|805|807|811|815|905)').hasMatch(prefix)) {
-          _selectedNetwork = 2;
-          isSelected = true;
-        }
-        // Airtel prefixes
-        else if (RegExp(r'^0(701|708|802|808|902)').hasMatch(prefix)) {
-          _selectedNetwork = 3;
-          isSelected = true;
-        }
-        // 9mobile prefixes
-        else if (RegExp(r'^0(809|817|818|908|909)').hasMatch(prefix)) {
-          _selectedNetwork = 4;
-          isSelected = true;
-        }
-      });
+          _selectedPlan = null; // Clear plan if network switches
+        });
+      }
     }
   }
 
@@ -88,26 +80,17 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
       });
     });
 
-    // Initialize animation controller
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
-
-    _animationController.forward();
+    _phoneFocusNode.addListener(() {
+      setState(() {
+        _phoneHasFocus = _phoneFocusNode.hasFocus;
+      });
+    });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _phoneController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -122,6 +105,7 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
       setState(() {
         _selectedNetwork = id;
         isSelected = true;
+        _selectedPlan = null; // Reset plan selection on network change
       });
     }
   }
@@ -135,68 +119,192 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
         context: context,
         builder: (_) => WillPopScope(
           onWillPop: () async => false,
-          child: AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
-                  color: isSuccess ? Colors.green : Colors.red,
-                  size: 28,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF001f3e),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 320),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF001f3e).withOpacity(0.08),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            content: Text(
-              message,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[800],
-                height: 1.4,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isSuccess ? Icons.check_circle_rounded : Icons.error_rounded,
+                          color: isSuccess ? const Color(0xFF34C759) : const Color(0xFFFF3B30),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                message,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            foregroundColor: const Color(0xFF001f3e),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Dismiss',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 5,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'OK',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       );
     });
   }
 
-  // Add this state variable at the top of the class
-  bool _isProcessing = false;
+  void _showProcessingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: const Color(0xFF001f3e).withOpacity(0.4),
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 4,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF00D2FF),
+                            ),
+                            backgroundColor: const Color(0xFF00D2FF).withOpacity(0.15),
+                          ),
+                        ),
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF001f3e).withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_clock_rounded,
+                            color: Color(0xFF001f3e),
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Processing Transaction',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please do not close this window or press back.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _handleDataPurchase({
     required String pin,
@@ -208,8 +316,7 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
     setState(() {
       _isProcessing = true;
     });
-
-    // Show loading dialog
+    _showProcessingDialog();
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -229,19 +336,19 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
       }
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/purchase/buydata'),
+        Uri.parse('${AppConfig.liveUrl}/purchase/buydata'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(requestBody),
       );
-      // Update state before showing result
+
       if (mounted) {
         setState(() {
           _isProcessing = false;
         });
-        // Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop(); // Dismiss loading dialog
       }
 
       if (!mounted) return;
@@ -285,14 +392,12 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
           );
         }
       }
-      // ... existing response handling code ...
     } catch (e) {
-      // Close loading dialog if still showing
       if (mounted) {
         setState(() {
           _isProcessing = false;
         });
-        // Navigator.of(context).maybePop();
+        Navigator.of(context).pop(); // Dismiss loading dialog
       }
 
       if (!mounted) return;
@@ -304,8 +409,6 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
       );
     }
   }
-
-  // Then update the buttons in the build method
 
   Future<void> _showPinInputModal({
     DateTime? scheduledDate,
@@ -324,7 +427,7 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => InputPin(
         onProceed: (pin) => _handleDataPurchase(
@@ -332,9 +435,301 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
           scheduledDate: scheduledDate,
           scheduledTime: scheduledTime,
         ),
-        onCancel: () {
-          // if (mounted) Navigator.of(context).pop();
+        onCancel: () {},
+      ),
+    );
+  }
+
+  Future<void> _schedulePurchase() async {
+    final DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF001f3e),
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Color(0xFF001f3e),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selectedDate != null && mounted) {
+      final TimeOfDay? selectedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              timePickerTheme: TimePickerThemeData(
+                backgroundColor: Colors.white,
+                hourMinuteTextColor: const Color(0xFF001f3e),
+                dialHandColor: const Color(0xFF001f3e),
+                dialBackgroundColor: const Color(0xFF001f3e).withOpacity(0.1),
+              ),
+              textButtonTheme: TextButtonThemeData(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF001f3e),
+                ),
+              ),
+            ),
+            child: child!,
+          );
         },
+      );
+
+      if (selectedTime != null && mounted) {
+        _showPinInputModal(
+          scheduledDate: selectedDate,
+          scheduledTime: selectedTime,
+        );
+      }
+    }
+  }
+
+  Widget _buildSummaryCard() {
+    final plan = _selectedPlan;
+    if (plan == null) return const SizedBox.shrink();
+
+    String networkName = 'Unknown';
+    String networkLogo = 'assets/mtn.png';
+    if (_selectedNetwork == 1) {
+      networkName = 'MTN';
+      networkLogo = 'assets/mtn.png';
+    } else if (_selectedNetwork == 2) {
+      networkName = 'GLO';
+      networkLogo = 'assets/glo.png';
+    } else if (_selectedNetwork == 3) {
+      networkName = 'Airtel';
+      networkLogo = 'assets/airtel.webp';
+    } else if (_selectedNetwork == 4) {
+      networkName = '9mobile';
+      networkLogo = 'assets/nmobile.png';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 24, bottom: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: const Color(0xFF00D2FF).withOpacity(0.15),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00D2FF).withOpacity(0.04),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'TRANSACTION SUMMARY',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF001f3e).withOpacity(0.4),
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00D2FF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Swipe to Confirm',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0088CC),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              ClipOval(
+                child: Image.asset(
+                  networkLogo,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      plan['plan_name'] ?? '',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Recipient: ${_phoneController.text}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Divider(
+            color: const Color(0xFF001f3e).withOpacity(0.06),
+            height: 1,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Operator',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                networkName,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF001f3e),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Validity',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                plan['validity'] ?? '30 Days',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF001f3e),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Amount to Pay',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '₦${plan['admin_price']}',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  color: const Color(0xFF00D2FF),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: SlideToConfirm(
+                  text: 'Slide to Purchase',
+                  isEnabled: !_isProcessing,
+                  onConfirm: () => _showPinInputModal(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: _isProcessing ? null : _schedulePurchase,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF001f3e).withOpacity(0.15),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.schedule_rounded,
+                        color: Color(0xFF001f3e),
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Buy Later',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF001f3e).withOpacity(0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -342,53 +737,71 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF001f3e),
+        backgroundColor: Colors.white,
         elevation: 0,
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          statusBarColor: Color(0xFF001f3e),
-          statusBarIconBrightness: Brightness.light,
-        ),
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(20),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: const Color(0xFF001f3e).withOpacity(0.06),
+            height: 1.0,
           ),
         ),
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
         leading: IconButton(
-          icon:
-              const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF001f3e)),
           onPressed: () => Navigator.of(context).pop(),
           splashRadius: 24,
         ),
-        title: const Text(
+        title: Text(
           'Buy Data Bundle',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            letterSpacing: 0.5,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF001f3e),
+            letterSpacing: -0.2,
           ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline_rounded, color: Colors.white),
+            icon: const Icon(Icons.info_outline_rounded, color: Color(0xFF001f3e)),
             onPressed: () {
-              // Show info dialog about data bundles
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Data Bundle Info'),
-                  content: const Text(
-                      'Purchase data bundles for any network. You can buy for yourself or others.'),
+                  backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  title: Text(
+                    'Data Bundle Info',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF001f3e),
+                    ),
+                  ),
+                  content: Text(
+                    'Purchase data bundles for any network. You can buy for yourself or others.',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.grey[700],
+                    ),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('OK',
-                          style: TextStyle(color: Color(0xFF001f3e))),
+                      child: Text(
+                        'OK',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF001f3e),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -398,252 +811,61 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
           ),
         ],
       ),
-      body: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF001f3e).withOpacity(0.05),
+      body: Stack(
+        children: [
+          // Background mesh gradient circles
+          Positioned(
+            top: -80,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF00D2FF).withOpacity(0.04),
+              ),
+            ),
           ),
-          child: LayoutBuilder(builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const RecentTransactions(
-                      recentType: 'Data Purchase',
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            const Color(0xFF001f3e).withOpacity(0.05),
-                            const Color(0xFF001f3e).withOpacity(0.05),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+          Positioned(
+            bottom: 80,
+            left: -80,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF001f3e).withOpacity(0.03),
+              ),
+            ),
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const RecentTransactions(
+                        recentType: 'Data Purchase',
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Network Selection Header
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  // 👈 makes this section shrink/wrap properly
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF001f3e)
-                                              .withOpacity(0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(
-                                          Icons.sim_card_rounded,
-                                          color: Color(0xFF001f3e),
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Flexible(
-                                        // 👈 ensures text doesn't overflow
-                                        child: Text(
-                                          'Select Network',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF001f3e),
-                                          ),
-                                          overflow: TextOverflow
-                                              .ellipsis, // 👈 truncate if too long
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                BeneficiarySelector(
-                                  type: 'data',
-                                  phoneController: _phoneController,
-                                  isToggled: beneficiary_toggle,
-                                  updateToggle: updateBeneficiaryToggle,
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 20),
+                      const SizedBox(height: 20),
 
-                          // Network Options
-
-                          Container(
-                           
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment
-                                  .spaceEvenly, // Changed from spaceAround for better distribution
-                              children: [
-                                Flexible(
-                                  // Added Flexible to prevent overflow
-                                  child: NetworkSelect(
-                                    imageUrl: 'assets/mtn.png',
-                                    name: 'MTN',
-                                    isSelected: _selectedNetwork == 1,
-                                    onTap: () => selectNetwork('MTN', 1),
-                                  ),
-                                ),
-                                Flexible(
-                                  child: NetworkSelect(
-                                    imageUrl: 'assets/glo.png',
-                                    name: 'GLO',
-                                    isSelected: _selectedNetwork == 2,
-                                    onTap: () => selectNetwork('GLO', 2),
-                                  ),
-                                ),
-                                Flexible(
-                                  child: NetworkSelect(
-                                    imageUrl: 'assets/airtel.webp',
-                                    name: 'Airtel',
-                                    isSelected: _selectedNetwork == 3,
-                                    onTap: () => selectNetwork('Airtel', 3),
-                                  ),
-                                ),
-                                Flexible(
-                                  child: NetworkSelect(
-                                    imageUrl: 'assets/nmobile.png',
-                                    name: '9mobile',
-                                    isSelected: _selectedNetwork == 4,
-                                    onTap: () => selectNetwork('9mobile', 4),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color:
-                                      const Color(0xFF001f3e).withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.phone_rounded,
-                                  color: Color(0xFF001f3e),
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Text(
-                                'Phone Number',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF001f3e),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Phone Number Input Section
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: const Color(0xFF001f3e).withOpacity(0.1),
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextField(
-                                  controller: _phoneController,
-                                  keyboardType: TextInputType.phone,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Color(0xFF001f3e),
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Enter phone number',
-                                    hintStyle: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: 15,
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFF001f3e)
-                                        .withOpacity(0.05),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: const Color(0xFF001f3e)
-                                            .withOpacity(0.1),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF001f3e),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                BeneficiaryToggle(
-                                  phone: _phone,
-                                  isToggled: beneficiary_toggle,
-                                  updateToggle: updateBeneficiaryToggle,
-                                  type: 'data',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // ... rest of the widgets ...
-                    if (isSelected)
+                      // Card 1: Select Network
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF001f3e).withOpacity(0.05),
-                              const Color(0xFF001f3e).withOpacity(0.05),
-                            ],
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: const Color(0xFF001f3e).withOpacity(0.06),
+                            width: 1.2,
                           ),
-                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withOpacity(0.02),
                               blurRadius: 10,
-                              spreadRadius: 2,
                               offset: const Offset(0, 4),
                             ),
                           ],
@@ -654,273 +876,417 @@ class _BuyDataState extends State<BuyData> with SingleTickerProviderStateMixin {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF001f3e)
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.keyboard_option_key,
-                                      color: Color(0xFF001f3e),
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Select Plan',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF001f3e),
-                                    ),
-                                  ),
-                                ]),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF001f3e)
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.local_offer_rounded,
-                                        size: 16,
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF001f3e).withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.sim_card_rounded,
                                         color: Color(0xFF001f3e),
+                                        size: 20,
                                       ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'Available Plans',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: const Color(0xFF001f3e),
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Select Network',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF001f3e),
                                       ),
-                                    ],
+                                    ),
+                                  ],
+                                ),
+                                BeneficiarySelector(
+                                  type: 'data',
+                                  phoneController: _phoneController,
+                                  isToggled: beneficiary_toggle,
+                                  updateToggle: updateBeneficiaryToggle,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/mtn.png',
+                                    name: 'MTN',
+                                    isSelected: _selectedNetwork == 1,
+                                    onTap: () => selectNetwork('MTN', 1),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/glo.png',
+                                    name: 'GLO',
+                                    isSelected: _selectedNetwork == 2,
+                                    onTap: () => selectNetwork('GLO', 2),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/airtel.webp',
+                                    name: 'Airtel',
+                                    isSelected: _selectedNetwork == 3,
+                                    onTap: () => selectNetwork('Airtel', 3),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: NetworkSelect(
+                                    imageUrl: 'assets/nmobile.png',
+                                    name: '9mobile',
+                                    isSelected: _selectedNetwork == 4,
+                                    onTap: () => selectNetwork('9mobile', 4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Card 2: Phone Number Input Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: const Color(0xFF001f3e).withOpacity(0.06),
+                            width: 1.2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.02),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF001f3e).withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.phone_rounded,
+                                    color: Color(0xFF001f3e),
+                                    size: 20,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  'Phone Number',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF001f3e),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 16),
-                            FetchPlan(
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  if (_phoneHasFocus)
+                                    BoxShadow(
+                                      color: const Color(0xFF00D2FF).withOpacity(0.12),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                    )
+                                  else
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.01),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                ],
+                              ),
+                              child: TextField(
+                                controller: _phoneController,
+                                focusNode: _phoneFocusNode,
+                                keyboardType: TextInputType.phone,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  color: const Color(0xFF001f3e),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'Enter phone number',
+                                  hintStyle: GoogleFonts.plusJakartaSans(
+                                    color: Colors.grey[400],
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  filled: true,
+                                  fillColor: _phoneHasFocus ? Colors.white : const Color(0xFFF8FAFC),
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(
+                                      color: const Color(0xFF001f3e).withOpacity(0.08),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF00D2FF),
+                                      width: 1.8,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            BeneficiaryToggle(
+                              phone: _phone,
+                              isToggled: beneficiary_toggle,
+                              updateToggle: updateBeneficiaryToggle,
                               type: 'data',
-                              network: _selectedNetwork ?? 1,
-                              onPlanSelected: (plan) {
-                                setState(() {
-                                  _selectedPlan = plan;
-                                });
-                              },
                             ),
                           ],
                         ),
                       ),
-                    const SizedBox(height: 24),
-                    if (isSelected)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 20),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF001f3e)
-                                          .withOpacity(0.2),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton.icon(
-                                  onPressed: _isProcessing
-                                      ? null
-                                      : () => _showPinInputModal(),
-                                  icon: _isProcessing
-                                      ? Container(
-                                          width: 20,
-                                          height: 20,
-                                          child:
-                                              const CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.flash_on_rounded,
-                                          size: 20),
-                                  label: Text(_isProcessing
-                                      ? 'Processing...'
-                                      : 'Buy Now'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF001f3e),
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor:
-                                        const Color(0xFF001f3e)
-                                            .withOpacity(0.7),
-                                    disabledForegroundColor:
-                                        Colors.white.withOpacity(0.8),
-                                    textStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.5,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                ),
-                              ),
+                      const SizedBox(height: 20),
+
+                      // Card 3: Select Plan
+                      if (isSelected)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: const Color(0xFF001f3e).withOpacity(0.06),
+                              width: 1.2,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Container(
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.grey.withOpacity(0.15),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ElevatedButton.icon(
-                                  onPressed: _isProcessing
-                                      ? null
-                                      : () async {
-                                          final DateTime? selectedDate =
-                                              await showDatePicker(
-                                            context: context,
-                                            initialDate: DateTime.now(),
-                                            firstDate: DateTime.now(),
-                                            lastDate: DateTime.now()
-                                                .add(const Duration(days: 30)),
-                                            builder: (context, child) {
-                                              return Theme(
-                                                data:
-                                                    Theme.of(context).copyWith(
-                                                  colorScheme:
-                                                      const ColorScheme.light(
-                                                    primary: Color(0xFF001f3e),
-                                                    onPrimary: Colors.white,
-                                                    surface: Colors.white,
-                                                    onSurface:
-                                                        Color(0xFF001f3e),
-                                                  ),
-                                                ),
-                                                child: child!,
-                                              );
-                                            },
-                                          );
-
-                                          if (selectedDate != null && mounted) {
-                                            final TimeOfDay? selectedTime =
-                                                await showTimePicker(
-                                              context: context,
-                                              initialTime: TimeOfDay.now(),
-                                              builder: (context, child) {
-                                                return Theme(
-                                                  data: Theme.of(context)
-                                                      .copyWith(
-                                                    timePickerTheme:
-                                                        TimePickerThemeData(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      hourMinuteTextColor:
-                                                          const Color(
-                                                              0xFF001f3e),
-                                                      dialHandColor:
-                                                          const Color(
-                                                              0xFF001f3e),
-                                                      dialBackgroundColor:
-                                                          const Color(
-                                                                  0xFF001f3e)
-                                                              .withOpacity(0.1),
-                                                    ),
-                                                    textButtonTheme:
-                                                        TextButtonThemeData(
-                                                      style:
-                                                          TextButton.styleFrom(
-                                                        foregroundColor:
-                                                            const Color(
-                                                                0xFF001f3e),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  child: child!,
-                                                );
-                                              },
-                                            );
-
-                                            if (selectedTime != null &&
-                                                mounted) {
-                                              _showPinInputModal(
-                                                scheduledDate: selectedDate,
-                                                scheduledTime: selectedTime,
-                                              );
-                                            }
-                                          }
-                                        },
-                                  icon: _isProcessing
-                                      ? Container(
-                                          width: 20,
-                                          height: 20,
-                                          child:
-                                              const CircularProgressIndicator(
-                                            color: const Color(0xFF001f3e),
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : const Icon(Icons.schedule_rounded,
-                                          size: 20),
-                                  label: Text(_isProcessing
-                                      ? 'Processing...'
-                                      : 'Buy Later'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: const Color(0xFF001f3e),
-                                    disabledBackgroundColor:
-                                        Colors.white.withOpacity(0.7),
-                                    disabledForegroundColor:
-                                        const Color(0xFF001f3e)
-                                            .withOpacity(0.7),
-                                    textStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.5,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                        color: _isProcessing
-                                            ? const Color(0xFF001f3e)
-                                                .withOpacity(0.3)
-                                            : const Color(0xFF001f3e),
-                                        width: 1,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF001f3e).withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: const Icon(
+                                          Icons.keyboard_option_key,
+                                          color: Color(0xFF001f3e),
+                                          size: 20,
+                                        ),
                                       ),
-                                    ),
-                                    elevation: 0,
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        'Select Plan',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF001f3e),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF00D2FF).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.local_offer_rounded,
+                                          size: 14,
+                                          color: Color(0xFF0088CC),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Available Plans',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            color: const Color(0xFF0088CC),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              FetchPlan(
+                                type: 'data',
+                                network: _selectedNetwork ?? 1,
+                                onPlanSelected: (plan) {
+                                  setState(() {
+                                    _selectedPlan = plan;
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                  ],
+
+                      // Card 4: Summary Card and slide action
+                      if (isSelected && _selectedPlan != null)
+                        _buildSummaryCard(),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// SlideToConfirm custom slider widget
+class SlideToConfirm extends StatefulWidget {
+  final VoidCallback onConfirm;
+  final String text;
+  final bool isEnabled;
+
+  const SlideToConfirm({
+    Key? key,
+    required this.onConfirm,
+    required this.text,
+    this.isEnabled = true,
+  }) : super(key: key);
+
+  @override
+  State<SlideToConfirm> createState() => _SlideToConfirmState();
+}
+
+class _SlideToConfirmState extends State<SlideToConfirm> {
+  double _dragPosition = 0.0;
+  bool _isConfirmed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxDrag = constraints.maxWidth - 56.0 - 8.0;
+        return Container(
+          height: 64,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: widget.isEnabled ? const Color(0xFF001f3e).withOpacity(0.04) : Colors.grey[200],
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(
+              color: widget.isEnabled ? const Color(0xFF001f3e).withOpacity(0.08) : Colors.grey[300]!,
+              width: 1.5,
+            ),
+          ),
+          child: Stack(
+            children: [
+              Center(
+                child: Text(
+                  widget.text,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: widget.isEnabled ? const Color(0xFF001f3e).withOpacity(0.6) : Colors.grey[400],
+                  ),
                 ),
               ),
-            );
-          })),
+              AnimatedPositioned(
+                duration: Duration(milliseconds: _dragPosition == 0.0 || _isConfirmed ? 200 : 0),
+                left: _dragPosition,
+                top: 0,
+                bottom: 0,
+                child: GestureDetector(
+                  onHorizontalDragUpdate: (details) {
+                    if (!widget.isEnabled || _isConfirmed) return;
+                    setState(() {
+                      _dragPosition = (_dragPosition + details.delta.dx).clamp(0.0, maxDrag);
+                    });
+                  },
+                  onHorizontalDragEnd: (details) {
+                    if (!widget.isEnabled || _isConfirmed) return;
+                    if (_dragPosition >= maxDrag * 0.85) {
+                      setState(() {
+                        _dragPosition = maxDrag;
+                        _isConfirmed = true;
+                      });
+                      widget.onConfirm();
+                      Future.delayed(const Duration(milliseconds: 1500), () {
+                        if (mounted) {
+                          setState(() {
+                            _dragPosition = 0.0;
+                            _isConfirmed = false;
+                          });
+                        }
+                      });
+                    } else {
+                      setState(() {
+                        _dragPosition = 0.0;
+                      });
+                    }
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF001f3e), Color(0xFF0A3663)],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF001f3e).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      _isConfirmed ? Icons.check : Icons.arrow_forward_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

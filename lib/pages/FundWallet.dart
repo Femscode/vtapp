@@ -4,6 +4,10 @@ import 'package:vtubiz/component/profile/BankTransfer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'dart:ui';
 
 class FundWallet extends StatefulWidget {
   const FundWallet({Key? key}) : super(key: key);
@@ -14,15 +18,40 @@ class FundWallet extends StatefulWidget {
 
 class _FundWalletState extends State<FundWallet> {
   final _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
+  bool _amountHasFocus = false;
+
+  final _bvnController = TextEditingController();
+  final FocusNode _bvnFocusNode = FocusNode();
+  bool _bvnHasFocus = false;
+
   String? selectedPaymentType;
   Map<String, dynamic> userData = {};
   bool _isGenerating = false;
-  final _bvnController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    _amountFocusNode.addListener(() {
+      setState(() {
+        _amountHasFocus = _amountFocusNode.hasFocus;
+      });
+    });
+    _bvnFocusNode.addListener(() {
+      setState(() {
+        _bvnHasFocus = _bvnFocusNode.hasFocus;
+      });
+    });
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _amountFocusNode.dispose();
+    _bvnController.dispose();
+    _bvnFocusNode.dispose();
+    super.dispose();
   }
 
   void _showResultDialog(String title, String message, bool isSuccess) {
@@ -34,64 +63,191 @@ class _FundWalletState extends State<FundWallet> {
         context: context,
         builder: (_) => WillPopScope(
           onWillPop: () async => false,
-          child: AlertDialog(
-            title: Row(
-              children: [
-                Icon(
-                  isSuccess ? Icons.check_circle : Icons.error,
-                  color: isSuccess ? Colors.green : Colors.red,
-                  size: 28,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF001f3e),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 320),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF001f3e).withOpacity(0.08),
+                    width: 1.5,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            content: Text(
-              message,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[800],
-                height: 1.4,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          isSuccess ? Icons.check_circle_rounded : Icons.error_rounded,
+                          color: isSuccess ? const Color(0xFF34C759) : const Color(0xFFFF3B30),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                title,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF001f3e),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                message,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  color: Colors.grey[600],
+                                  height: 1.4,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            foregroundColor: const Color(0xFF001f3e),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Dismiss',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 5,
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text(
-                  'OK',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSuccess ? Colors.green : const Color(0xFF001f3e),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       );
     });
+  }
+
+  void _showProcessingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: const Color(0xFF001f3e).withOpacity(0.4),
+      builder: (BuildContext context) {
+        return WillPopScope(
+          onWillPop: () async => false,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8.0, sigmaY: 8.0),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 4,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF00D2FF),
+                            ),
+                            backgroundColor: const Color(0xFF00D2FF).withOpacity(0.15),
+                          ),
+                        ),
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF001f3e).withOpacity(0.05),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.lock_clock_rounded,
+                            color: Color(0xFF001f3e),
+                            size: 24,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      message,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF001f3e),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Please do not close this window or press back.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadUserData() async {
@@ -99,7 +255,7 @@ class _FundWalletState extends State<FundWallet> {
     final token = prefs.getString('token') ?? '';
 
     final response = await http.get(
-      Uri.parse('https://vtubiz.com/api/user'),
+      Uri.parse('${AppConfig.liveUrl}/user'),
       headers: {
         'Authorization': 'Bearer $token',
       },
@@ -116,102 +272,166 @@ class _FundWalletState extends State<FundWallet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => Padding(
         padding: EdgeInsets.only(
           bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 16,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-             TextField(
-              controller: _bvnController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Enter Your BVN',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _isGenerating
-                  ? null
-                  : () async {
-                      setState(() => _isGenerating = true);
-                      try {
-                        final prefs = await SharedPreferences.getInstance();
-                        final token = prefs.getString('token') ?? '';
-                        print(token);
-
-                        final response = await http.post(
-                          Uri.parse(
-                              'https://vtubiz.com/api/profile/generate-permanent-account'),
-                          headers: {
-                            'Authorization': 'Bearer $token',
-                            'Content-Type': 'application/json',
-                          },
-                          body: jsonEncode({
-                            'bvn': _bvnController.text.trim(),
-                          }),
-                        );
-
-                        print(response.body);
-
-                        if (response.statusCode == 200) {
-                          Navigator.pop(context);
-                          _loadUserData(); // Refresh user data to show new account
-
-                          _showResultDialog(
-                            'Account Generated',
-                            'Virtual account generated successfully!',
-                            true,
-                          );
-                        } else {
-                          _showResultDialog(
-                            'Account Generated',
-                            'Failed to generate a permanent account!',
-                            false,
-                          );
-                        }
-                      } catch (e) {
-                        _showResultDialog(
-                          'Account Generation Failed',
-                          'An Error Occured, Please try again later!',
-                          true,
-                        );
-                      } finally {
-                        setState(() => _isGenerating = false);
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF001f3e),
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Generate Virtual Account',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF001f3e),
                 ),
               ),
-              child: _isGenerating
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      'Generate',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+              const SizedBox(height: 8),
+              Text(
+                'Provide your BVN to verify identity and provision your virtual account.',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 20),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.01),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _bvnController,
+                  keyboardType: TextInputType.number,
+                  focusNode: _bvnFocusNode,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    color: const Color(0xFF001f3e),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Enter Your BVN',
+                    labelStyle: GoogleFonts.plusJakartaSans(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: const Color(0xFF001f3e).withOpacity(0.08),
+                        width: 1.5,
                       ),
                     ),
-            ),
-            const SizedBox(height: 16),
-          ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF00D2FF),
+                        width: 1.8,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isGenerating
+                      ? null
+                      : () async {
+                          setState(() => _isGenerating = true);
+                          Navigator.pop(context); // Dismiss modal sheet
+                          _showProcessingDialog('Generating Permanent Account');
+
+                          try {
+                            final prefs = await SharedPreferences.getInstance();
+                            final token = prefs.getString('token') ?? '';
+
+                            final response = await http.post(
+                              Uri.parse('${AppConfig.liveUrl}/profile/generate-permanent-account'),
+                              headers: {
+                                'Authorization': 'Bearer $token',
+                                'Content-Type': 'application/json',
+                              },
+                              body: jsonEncode({
+                                'bvn': _bvnController.text.trim(),
+                              }),
+                            );
+
+                            if (mounted) {
+                              Navigator.of(context).pop(); // Dismiss loader dialog
+                            }
+
+                            if (response.statusCode == 200) {
+                              _loadUserData(); // Refresh user data to show new account
+                              _showResultDialog(
+                                'Success',
+                                'Virtual account generated successfully!',
+                                true,
+                              );
+                            } else {
+                              _showResultDialog(
+                                'Generation Failed',
+                                'Failed to generate a permanent account. Please verify details and try again.',
+                                false,
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              Navigator.of(context).pop(); // Dismiss loader dialog
+                            }
+                            _showResultDialog(
+                              'Error',
+                              'An unexpected error occurred. Please try again later.',
+                              false,
+                            );
+                          } finally {
+                            setState(() => _isGenerating = false);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF001f3e),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Generate Account',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
       ),
     );
@@ -220,7 +440,13 @@ class _FundWalletState extends State<FundWallet> {
   void _proceedToPayment() async {
     if (_amountController.text.isEmpty || selectedPaymentType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields')),
+        SnackBar(
+          content: Text(
+            'Please fill all fields',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: const Color(0xFFFF3B30),
+        ),
       );
       return;
     }
@@ -243,127 +469,505 @@ class _FundWalletState extends State<FundWallet> {
     }
   }
 
+  Widget _buildVirtualAccountCard() {
+    final accountNo = userData['account_no'] ?? '';
+    final bankName = userData['bank_name'] ?? '';
+    final accountName = userData['account_name'] ?? '';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF001f3e), Color(0xFF0A3663)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF001f3e).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'VIRTUAL ACCOUNT DETAILS',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Text(
+                bankName.toUpperCase(),
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 36),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SelectableText(
+                accountNo,
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.0,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy_rounded, color: Color(0xFF00D2FF), size: 22),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: accountNo));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Account number copied!',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                      ),
+                      backgroundColor: const Color(0xFF34C759),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                },
+                splashRadius: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ACCOUNT NAME',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white.withOpacity(0.5),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      accountName.toUpperCase(),
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.contactless_rounded,
+                color: Colors.white54,
+                size: 24,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFAFBFD),
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: const Color(0xFF001f3e).withOpacity(0.06),
+            height: 1.0,
+          ),
+        ),
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF001f3e)),
           onPressed: () => Navigator.of(context).pop(),
+          splashRadius: 24,
         ),
-        title: const Text(
+        title: Text(
           'Fund Wallet',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF001f3e),
+            letterSpacing: -0.2,
+          ),
         ),
-        backgroundColor: const Color(0xFF001f3e),
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              color: const Color(0xFF001f3e),
-              height: 5,
-              width: double.infinity,
+      body: Stack(
+        children: [
+          // Background mesh circles
+          Positioned(
+            top: -80,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF00D2FF).withOpacity(0.04),
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -80,
+            child: Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF001f3e).withOpacity(0.03),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Card(
-                    color: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  // Amount to fund Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: const Color(0xFF001f3e).withOpacity(0.06),
+                        width: 1.2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Enter Amount to Fund',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF001f3e),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              if (_amountHasFocus)
+                                BoxShadow(
+                                  color: const Color(0xFF00D2FF).withOpacity(0.12),
+                                  blurRadius: 10,
+                                  spreadRadius: 1,
+                                )
+                              else
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.01),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _amountController,
+                            focusNode: _amountFocusNode,
+                            keyboardType: TextInputType.number,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              color: const Color(0xFF001f3e),
+                              fontWeight: FontWeight.bold,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Enter amount',
+                              prefixText: '₦ ',
+                              prefixStyle: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF001f3e),
+                              ),
+                              filled: true,
+                              fillColor: _amountHasFocus ? Colors.white : const Color(0xFFF8FAFC),
+                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: const Color(0xFF001f3e).withOpacity(0.08),
+                                  width: 1.5,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF00D2FF),
+                                  width: 1.8,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Select Payment Method',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF001f3e),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => selectedPaymentType = 'transfer'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: selectedPaymentType == 'transfer'
+                                        ? const Color(0xFF001f3e).withOpacity(0.02)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: selectedPaymentType == 'transfer'
+                                          ? const Color(0xFF00D2FF)
+                                          : const Color(0xFF001f3e).withOpacity(0.08),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.account_balance_rounded,
+                                        color: selectedPaymentType == 'transfer'
+                                            ? const Color(0xFF001f3e)
+                                            : Colors.grey[400],
+                                        size: 22,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Bank Transfer',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF001f3e),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => selectedPaymentType = 'card'),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: selectedPaymentType == 'card'
+                                        ? const Color(0xFF001f3e).withOpacity(0.02)
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: selectedPaymentType == 'card'
+                                          ? const Color(0xFF00D2FF)
+                                          : const Color(0xFF001f3e).withOpacity(0.08),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Icon(
+                                        Icons.credit_card_rounded,
+                                        color: selectedPaymentType == 'card'
+                                            ? const Color(0xFF001f3e)
+                                            : Colors.grey[400],
+                                        size: 22,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Credit Card',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF001f3e),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _proceedToPayment,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF001f3e),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Proceed to Payment',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (userData['account_no'] != null)
+                    _buildVirtualAccountCard()
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: const Color(0xFF001f3e).withOpacity(0.06),
+                          width: 1.2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.02),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Enter Amount to Fund',
-                            style: TextStyle(
+                          Text(
+                            'Get Your Own Virtual Account',
+                            style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF001f3e),
+                              color: const Color(0xFF001f3e),
                             ),
                           ),
                           const SizedBox(height: 16),
-                          TextField(
-                            controller: _amountController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Amount',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF001f3e),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF34C759), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Instant wallet funding via standard transfers.',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Select Payment Method',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF001f3e),
-                            ),
+                            ],
                           ),
                           const SizedBox(height: 8),
-                          Card(
-                            elevation: 0,
-                            color: Colors.grey[50],
-                            child: RadioListTile(
-                              title: const Text('Bank Transfer'),
-                              value: 'transfer',
-                              groupValue: selectedPaymentType,
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedPaymentType = value.toString();
-                                });
-                              },
-                              activeColor: const Color(0xFF001f3e),
-                            ),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF34C759), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Zero additional hidden transfer fees.',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 8),
-                          Card(
-                            elevation: 0,
-                            color: Colors.grey[50],
-                            child: RadioListTile(
-                              title: const Text('Credit Card'),
-                              value: 'card',
-                              groupValue: selectedPaymentType,
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedPaymentType = value.toString();
-                                });
-                              },
-                              activeColor: const Color(0xFF001f3e),
-                            ),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Color(0xFF34C759), size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Available 24/7 for auto-remittance.',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
-                            height: 50,
+                            height: 52,
                             child: ElevatedButton(
-                              onPressed: _proceedToPayment,
+                              onPressed: _showBvnField,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF001f3e),
+                                backgroundColor: const Color(0xFF001f3e).withOpacity(0.05),
+                                foregroundColor: const Color(0xFF001f3e),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
+                                elevation: 0,
                               ),
-                              child: const Text(
-                                'Proceed to Payment',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
+                              child: Text(
+                                'Generate Permanent Account →',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -372,132 +976,11 @@ class _FundWalletState extends State<FundWallet> {
                         ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (userData['account_no'] != null)
-                    Card(
-                      color: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Your Virtual Account Details',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF001f3e),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            ListTile(
-                              title: const Text(
-                                'Account Number',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              subtitle: Text(
-                                userData['account_no'] ?? '',
-                                style: const TextStyle(
-                                  color: Color(0xFF001f3e),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            ListTile(
-                              title: const Text(
-                                'Bank Name',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              subtitle: Text(
-                                userData['bank_name'] ?? '',
-                                style: const TextStyle(
-                                  color: Color(0xFF001f3e),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            ListTile(
-                              title: const Text(
-                                'Account Name',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              subtitle: Text(
-                                userData['account_name'] ?? '',
-                                style: const TextStyle(
-                                  color: Color(0xFF001f3e),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    Card(
-                      color: Colors.white, // Set the background color t
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Get Your Own Virtual Account',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF001f3e),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              '• Instant wallet funding\n• Zero transfer fees\n• Available 24/7',
-                              style: TextStyle(fontSize: 16, height: 1.5),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: TextButton(
-                                onPressed: _showBvnField,
-                                style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFF001f3e),
-                                ),
-                                child: const Text(
-                                  'Generate Permanent Account →',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

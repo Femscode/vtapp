@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:vtubiz/pages/BuyCable.dart';
 import 'package:vtubiz/pages/BuyData.dart';
 import 'package:vtubiz/pages/BuyElectricity.dart';
@@ -14,37 +15,82 @@ class Categories extends StatefulWidget {
 
 class _CategoriesState extends State<Categories> {
   final List<Map<String, dynamic>> categories = [
-    {"icon": Icons.flash_on, "text": "Data"},
-    {"icon": Icons.phone, "text": "Airtime", "isDisabled": true},
-    {"icon": Icons.electric_bolt, "text": "Electricity"},
-    {"icon": Icons.message_rounded, "text": "Bulk SMS", "isDisabled": true},
-    {"icon": Icons.tv_rounded, "text": "Cable(TV)"},
-    {"icon": Icons.school_rounded, "text": "Result"},
-    {"icon": Icons.card_giftcard, "text": "Giveaways", "isDisabled": true},
-    {"icon": Icons.people_rounded, "text": "Referral"},
+    {
+      "icon": Icons.flash_on_rounded,
+      "text": "Data",
+      "color": const Color(0xFF0A84FF),
+    },
+    {
+      "icon": Icons.phone_rounded,
+      "text": "Airtime",
+      "isDisabled": true,
+      "color": const Color(0xFF00D2FF),
+    },
+    {
+      "icon": Icons.electric_bolt_rounded,
+      "text": "Electricity",
+      "color": const Color(0xFFFFB300),
+    },
+    {
+      "icon": Icons.message_rounded,
+      "text": "Bulk SMS",
+      "isDisabled": true,
+      "color": const Color(0xFFFF9500),
+    },
+    {
+      "icon": Icons.tv_rounded,
+      "text": "Cable(TV)",
+      "color": const Color(0xFFBF5AF2),
+    },
+    {
+      "icon": Icons.school_rounded,
+      "text": "Result",
+      "color": const Color(0xFF5E5CE6),
+    },
+    {
+      "icon": Icons.card_giftcard_rounded,
+      "text": "Giveaways",
+      "isDisabled": true,
+      "color": const Color(0xFFFF2D55),
+    },
+    {
+      "icon": Icons.people_rounded,
+      "text": "Referral",
+      "color": const Color(0xFF34C759),
+    },
   ];
 
   void navigatePurchase(String title) {
     switch (title) {
       case 'Data':
         Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const BuyData()));
+          context,
+          MaterialPageRoute(builder: (context) => const BuyData()),
+        );
         break;
       case 'Electricity':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const BuyElectricity()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const BuyElectricity()),
+        );
         break;
       case 'Cable(TV)':
         Navigator.push(
-            context, MaterialPageRoute(builder: (context) => const BuyCable()));
+          context,
+          MaterialPageRoute(builder: (context) => const BuyCable()),
+        );
         break;
       case 'Result':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const BuyExamination()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const BuyExamination()),
+        );
         break;
       case 'Referral':
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => const Referral()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const Referral()),
+        );
         break;
     }
   }
@@ -53,7 +99,7 @@ class _CategoriesState extends State<Categories> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Coming soon... 🚧"),
-        backgroundColor: Colors.black87,
+        backgroundColor: Color(0xFF001f3e),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -62,11 +108,14 @@ class _CategoriesState extends State<Categories> {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4, // 4 icons per row
-        childAspectRatio: 0.8,
+        childAspectRatio: 0.85,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 12,
       ),
       itemCount: categories.length,
       itemBuilder: (context, index) {
@@ -74,6 +123,7 @@ class _CategoriesState extends State<Categories> {
         return CategoryCircle(
           icon: item["icon"],
           text: item["text"],
+          color: item["color"],
           isDisabled: item["isDisabled"] ?? false,
           press: () => item["isDisabled"] == true
               ? showNotAvailable()
@@ -84,49 +134,114 @@ class _CategoriesState extends State<Categories> {
   }
 }
 
-class CategoryCircle extends StatelessWidget {
+class CategoryCircle extends StatefulWidget {
   const CategoryCircle({
     Key? key,
     required this.icon,
     required this.text,
     required this.press,
+    required this.color,
     this.isDisabled = false,
   }) : super(key: key);
 
   final IconData icon;
   final String text;
   final GestureTapCallback press;
+  final Color color;
   final bool isDisabled;
 
   @override
+  State<CategoryCircle> createState() => _CategoryCircleState();
+}
+
+class _CategoryCircleState extends State<CategoryCircle>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: press,
-      borderRadius: BorderRadius.circular(40),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor:
-                isDisabled ? Colors.grey.shade300 : const Color(0xFF001f3e),
-            child: Icon(
-              icon,
-              size: 22,
-              color: Colors.white,
+    final iconColor = widget.isDisabled ? Colors.grey : widget.color;
+
+    return GestureDetector(
+      onTapDown: (_) => widget.isDisabled ? null : _controller.forward(),
+      onTapUp: (_) {
+        if (!widget.isDisabled) {
+          _controller.reverse();
+          widget.press();
+        }
+      },
+      onTapCancel: () => widget.isDisabled ? null : _controller.reverse(),
+      onTap: widget.isDisabled ? widget.press : null,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 56,
+              width: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: widget.isDisabled
+                      ? [
+                          Colors.grey.withOpacity(0.08),
+                          Colors.grey.withOpacity(0.04),
+                        ]
+                      : [
+                          widget.color.withOpacity(0.14),
+                          widget.color.withOpacity(0.04),
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: widget.isDisabled
+                      ? Colors.transparent
+                      : widget.color.withOpacity(0.18),
+                  width: 1.2,
+                ),
+              ),
+              child: Icon(
+                widget.icon,
+                size: 24,
+                color: iconColor,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isDisabled ? Colors.grey : const Color(0xFF001f3e),
+            const SizedBox(height: 8),
+            Text(
+              widget.text,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: widget.isDisabled
+                    ? Colors.grey.shade500
+                    : const Color(0xFF001f3e),
+                letterSpacing: -0.1,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

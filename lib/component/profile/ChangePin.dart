@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+
 
 class ChangePin extends StatefulWidget {
   const ChangePin({Key? key}) : super(key: key);
@@ -90,7 +92,8 @@ class _ChangePinState extends State<ChangePin> {
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/profile/update-pin'),
+        Uri.parse('${AppConfig.liveUrl}/profile/update-pin'),
+
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

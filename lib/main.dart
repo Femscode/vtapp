@@ -16,20 +16,20 @@ class MyApp extends ConsumerWidget {
     return MaterialApp(
       title: 'VTUBIZ',
       theme: ThemeData(
-          scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+          scaffoldBackgroundColor: const Color(0xFFFAFBFD),
           primarySwatch: const MaterialColor(0xFFFFECDF, {
-            50: Color(0xFFFFECDF), // lighter shade
-            100: Color(0xFFFFD8BF), // lighter shade
-            200: Color(0xFFFFC39F), // lighter shade
-            300: Color(0xFFFFAE7F), // lighter shade
-            400: Color(0xFFFF9A5F), // lighter shade
-            500: Color(0xFFFFECDF), // primary color
-            600: Color(0xFFFFD8BF), // darker shade
-            700: Color(0xFFFFC39F), // darker shade
-            800: Color(0xFFFFAE7F), // darker shade
-            900: Color(0xFFFF9A5F), // darker shade
+            50: Color(0xFFFFECDF),
+            100: Color(0xFFFFD8BF),
+            200: Color(0xFFFFC39F),
+            300: Color(0xFFFFAE7F),
+            400: Color(0xFFFF9A5F),
+            500: Color(0xFFFFECDF),
+            600: Color(0xFFFFD8BF),
+            700: Color(0xFFFFC39F),
+            800: Color(0xFFFFAE7F),
+            900: Color(0xFFFF9A5F),
           }),
-          textTheme: GoogleFonts.openSansTextTheme()),
+          textTheme: GoogleFonts.plusJakartaSansTextTheme()),
       home: tokenAsyncValue.when(
         data: (token) => token != null ? const Dashboard() : AuthScreen(),
         loading: () => const Scaffold(

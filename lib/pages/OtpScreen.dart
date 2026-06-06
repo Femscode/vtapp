@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'package:vtubiz/config.dart';
 import 'package:vtubiz/pages/Dashboard.dart';
+
 
 class OtpScreen extends StatefulWidget {
   const OtpScreen({super.key});
@@ -25,7 +26,7 @@ class _OtpScreenState extends State<OtpScreen> {
         _pinController3.text +
         _pinController4.text;
     // Here you can save the PIN, e.g., save to shared preferences or API call
-    String url = 'https://vtubiz.com/api/profile';
+    String url = '${AppConfig.liveUrl}/profile';
    
     final user = await http.get(
       Uri.parse(url),

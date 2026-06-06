@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+
 
 final authUser = StateProvider<Object>((ref) {
   return '';
@@ -60,7 +62,7 @@ final errorMessage = StateProvider<String>((ref) {
 // });
 
 Future<Map<String, String>> fetchUserData(String token) async {
-  String url = 'https://vtubiz.com/api/profile';
+  String url = '${AppConfig.liveUrl}/profile';
   final user = await http.get(
     Uri.parse(url),
     headers: {'Authorization': 'Bearer $token'},
@@ -79,7 +81,7 @@ Future<Map<String, String>> fetchUserData(String token) async {
 }
 
 Future<List<Map<String, dynamic>>> fetchTransactions(String token) async {
-  String url = 'https://vtubiz.com/api/transactions';
+  String url = '${AppConfig.liveUrl}/transactions';
   final user = await http.get(
     Uri.parse(url),
     headers: {'Authorization': 'Bearer $token'},
@@ -98,7 +100,7 @@ Future<List<Map<String, dynamic>>> fetchTransactions(String token) async {
   }
 }
 Future<List<Map<String, dynamic>>> allTransactions(String token) async {
-  String url = 'https://vtubiz.com/api/transactions/all_transactions';
+  String url = '${AppConfig.liveUrl}/transactions/all_transactions';
   final user = await http.get(
     Uri.parse(url),
     headers: {'Authorization': 'Bearer $token'},
@@ -119,7 +121,7 @@ Future<List<Map<String, dynamic>>> allTransactions(String token) async {
 
 Future<List<Map<String, dynamic>>> getLastTransactions(
     String token, String type) async {
-  String url = 'https://vtubiz.com/api/transactions/five_transactions/$type';
+  String url = '${AppConfig.liveUrl}/transactions/five_transactions/$type';
   final user = await http.get(
     Uri.parse(url),
     headers: {'Authorization': 'Bearer $token'},
@@ -142,7 +144,7 @@ Future<List<Map<String, dynamic>>> getLastTransactions(
 Future<List<Map<String, dynamic>>> fetchBeneficiaries(
     String token, String type) async {
   try {
-    String url = 'https://vtubiz.com/api/beneficiary/$type';
+    String url = '${AppConfig.liveUrl}/beneficiary/$type';
     final user = await http.get(
       Uri.parse(url),
       headers: {'Authorization': 'Bearer $token'},

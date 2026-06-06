@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:vtubiz/config.dart';
+
 
 class DeleteAccount extends StatefulWidget {
   const DeleteAccount({Key? key}) : super(key: key);
@@ -88,7 +90,8 @@ class _DeleteAccountState extends State<DeleteAccount> {
       final token = prefs.getString('token') ?? '';
 
       final response = await http.post(
-        Uri.parse('https://vtubiz.com/api/profile/delete-account'),
+        Uri.parse('${AppConfig.liveUrl}/profile/delete-account'),
+
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',

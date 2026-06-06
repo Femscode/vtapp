@@ -125,8 +125,8 @@ class InputPin extends StatelessWidget {
                     onPressed: () {
                       final pin = _pinController.text;
                       if (pin.length == 4) {
-                        onProceed(pin);
                         Navigator.pop(context);
+                        onProceed(pin);
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
